@@ -43,6 +43,17 @@ export function advanceTurn(storage, currentId) {
   storage.set('currentTurn', getNextTurn(order, currentId))
 }
 
+// Like advanceTurn, but skips players that shouldSkip(id) returns true for —
+// e.g. players who have been knocked out. Won't loop forever.
+export function advanceTurnWhile(storage, currentId, shouldSkip) {
+  const order = readPlayerOrder(storage)
+  let next = getNextTurn(order, currentId)
+  for (let guard = 0; guard < order.length && shouldSkip(next); guard++) {
+    next = getNextTurn(order, next)
+  }
+  storage.set('currentTurn', next)
+}
+
 // Hook for boards: tells you the turn order, whose turn it is, whether it's
 // YOUR turn, and the list of everyone else (in turn order).
 export function useTurns(myId) {

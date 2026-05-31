@@ -3,17 +3,27 @@ import './App.css'
 import { RoomProvider, useStorage, LiveList, LiveObject } from './liveblocks.config'
 import { getSavedName, saveLastRoom, makeRoomCode } from './lib/identity'
 import { getGame } from './games/registry'
+import { GameContext } from './components/GameContext'
 import ErrorBoundary from './components/ErrorBoundary'
+import HowToPlay from './components/HowToPlay'
 import NameScreen from './screens/NameScreen'
 import LandingScreen from './screens/LandingScreen'
 import Lobby from './screens/Lobby'
 
-// Picks which game board to show, based on the game mode stored in the room.
+// Picks which game board to show, based on the game mode stored in the room,
+// and gives every board a "How to play" pop-up (opened by the ? in the TopBar).
 // Adding a game to the registry makes it playable here with no changes.
 function GameHost({ playerName, roomCode, onLeave }) {
   const gameMode = useStorage((root) => root.gameMode ?? 'freeplay')
-  const Board = getGame(gameMode).Board
-  return <Board playerName={playerName} roomCode={roomCode} onLeave={onLeave} />
+  const [helpOpen, setHelpOpen] = useState(false)
+  const game = getGame(gameMode)
+  const Board = game.Board
+  return (
+    <GameContext.Provider value={{ game, openHelp: () => setHelpOpen(true) }}>
+      <Board playerName={playerName} roomCode={roomCode} onLeave={onLeave} />
+      <HowToPlay game={game} open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </GameContext.Provider>
+  )
 }
 
 // ── Root app ──────────────────────────────────────────────
@@ -63,6 +73,7 @@ function App() {
           playerOrder: new LiveList([]),
           books: new LiveObject({}),
           lastAction: new LiveObject({ message: '', id: 0 }),
+          declaredSuit: '',
         }}
       >
         {screen === 'lobby'

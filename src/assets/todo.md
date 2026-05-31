@@ -12,6 +12,11 @@
 - [x] Show the game code of the current game in the actual game
 - [x] Refactor into reusable building blocks (cards, turns engine, shared UI, game registry) ready for more games
 
-## 🎮 Game library — next up
-- [ ] Add a new game (see "How to add a new game" in claude.md — turns are now a shared building block!)
-- [ ] Ideas: Snap, Crazy Eights, War, Old Maid
+## 🎮 Game library
+- [x] Add Crazy Eights 🎵 (match suit/number, wild 8s, first to empty hand wins)
+- [x] Add Snap 👏 (flip to the middle, race to snap matches)
+- [x] Add Old Maid 🙅 (toss pairs, take a hidden card, avoid the lonely Queen)
+- [x] Add Sevens 🔢 (build runs out from the 7s)
+- [x] Every game has built-in "How to play" instructions (ℹ️ in lobby, ? in game)
+- [ ] Playtest all the new games with friends and tweak the rules/feel
+- [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"

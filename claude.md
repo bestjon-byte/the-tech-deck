@@ -32,9 +32,15 @@ src/
   screens/              ← NameScreen, LandingScreen, Lobby
   games/
     registry.js         ← THE GAME LIBRARY — one entry per game
-    boards/             ← one board component per game (FreePlayBoard, GoFishBoard)
-    rules/              ← pure game-rule helpers (e.g. goFish.js extractBooks)
+    boards/             ← one board per game: FreePlay, GoFish, CrazyEights, Snap, OldMaid, Sevens
+    rules/              ← per-game logic: setup + rule helpers (extractBooks, isPlayable, …)
 ```
+
+### Games in the library
+`Free Play` 🃏 · `Go Fish` 🎣 · `Crazy Eights` 🎵 · `Snap` 👏 · `Old Maid` 🙅 · `Sevens` 🔢
+Each shows its own instructions via the **How to play** pop-up (`components/HowToPlay.jsx`):
+the lobby has an "ℹ️ How to play" link, and every game board has a **?** button in its
+top bar (wired automatically through `GameContext` — boards don't need to do anything).
 
 ### Key idea: turns are NOT baked into Go Fish any more
 Whose-turn-is-it lives in `engine/turns.js`. Any turn-based game:
@@ -44,19 +50,31 @@ Whose-turn-is-it lives in `engine/turns.js`. Any turn-based game:
 
 ## ➕ How to add a new game
 1. **Make a board** in `src/games/boards/MyGameBoard.jsx`. Build it from the
-   shared components (`CardFace`, `Hand`, `TopBar`, …) and hooks (`useCardTable`,
-   and `useTurns` if it's turn-based). Put any pure rules in `src/games/rules/`.
-2. **Add one entry** to `GAMES` in `src/games/registry.js`:
+   shared components (`CardFace`, `Hand`, `TopBar`, `TurnBanner`, `WinnerScreen`, …)
+   and hooks (`useCardTable`, and `useTurns` + `advanceTurn` if it's turn-based).
+2. **Put logic in** `src/games/rules/myGame.js` — a `setupMyGame({ storage, playerIds, count })`
+   that **deals the cards** (`dealToPlayers` or `dealAll`) and sets up any extra
+   state, plus pure rule helpers (e.g. "is this move legal?").
+3. **Add one entry** to `GAMES` in `src/games/registry.js`:
    ```js
    {
      id: 'mygame', name: 'My Game', emoji: '🎲', Board: MyGameBoard,
-     deal: { pickable: false, perPlayer: (n) => 5 },   // or { pickable:true, default,min,max }
-     setup({ storage, playerIds }) { beginTurns(storage, playerIds) }, // optional
-     lobbyHint: (n) => 'short rules summary',                          // optional
+     deal: { all: true },               // or { pickable:true, default,min,max } or { pickable:false, perPlayer:(n)=>5 }
+     setup: setupMyGame,                // deals cards + sets up turns/state
+     lobbyHint: (n) => 'short summary',  // optional
+     rules: { objective: '...', howTo: ['step', 'step'], win: '...' }, // shown in How-to-play
    }
    ```
-That's it — the lobby button, deal logic, and game screen all pick it up
-automatically. No edits to the lobby, router, or `App.jsx` needed.
+That's it — the lobby button, deal picker, game screen, and instructions all
+pick it up automatically. No edits to the lobby, router, or `App.jsx` needed.
+
+### Per-game shared state
+The Liveblocks storage has fixed slots (`deck`, `discardPile`, `hands`,
+`playerOrder`, `currentTurn`, `books`, `lastAction`, `declaredSuit`). Games reuse
+these: e.g. Snap uses `hands` as face-down stacks + `discardPile` as the middle;
+Sevens uses `discardPile` as the table. `lastAction` ({message,id}) is the shared
+"what just happened" toast (see `ActionMessage`). If a future game needs a new
+field, add it to `initialStorage` in `App.jsx`.
 
 ## Screens / Flow
 1. **Name screen** — first launch only, name saved to `localStorage` as `windy-player-name`
