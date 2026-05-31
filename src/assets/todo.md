@@ -10,3 +10,8 @@
 - [x] Allow players to have names
 - [x] Show other players the backs of their opponents cards
 - [x] Show the game code of the current game in the actual game
+- [x] Refactor into reusable building blocks (cards, turns engine, shared UI, game registry) ready for more games
+
+## 🎮 Game library — next up
+- [ ] Add a new game (see "How to add a new game" in claude.md — turns are now a shared building block!)
+- [ ] Ideas: Snap, Crazy Eights, War, Old Maid
