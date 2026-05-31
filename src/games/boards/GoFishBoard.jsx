@@ -8,6 +8,7 @@ import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
 import Hand from '../../components/Hand'
+import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
 
 // ── Go Fish ────────────────────────────────────────────────
@@ -129,24 +130,9 @@ export default function GoFishBoard({ playerName, roomCode, onLeave }) {
 
   if (gameOver) {
     const scores = playerOrder
-      .map((p) => ({ name: p, count: (books?.[p] ?? []).length }))
-      .sort((a, b) => b.count - a.count)
-    return (
-      <div className="lobby">
-        <div className="landing-logo">🏆</div>
-        <h2>{scores[0]?.name} wins Go Fish!</h2>
-        <div className="score-list">
-          {scores.map((s, i) => (
-            <div key={s.name} className="score-item">
-              <span className="score-medal">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span>
-              <span className="score-name">{s.name}</span>
-              <span className="score-books">{s.count} books</span>
-            </div>
-          ))}
-        </div>
-        <button className="big-btn back-btn" onClick={onLeave}>Back to Menu</button>
-      </div>
-    )
+      .map((p) => ({ name: p, detail: `${(books?.[p] ?? []).length} books` }))
+      .sort((a, b) => (books?.[b.name] ?? []).length - (books?.[a.name] ?? []).length)
+    return <WinnerScreen title={`${scores[0]?.name} wins Go Fish!`} scores={scores} onLeave={onLeave} />
   }
 
   const myBooks = books?.[myId] ?? []

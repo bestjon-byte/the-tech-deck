@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useOthers, useStorage, useMutation } from '../liveblocks.config'
-import { resetTable, dealToPlayers } from '../engine/table'
+import { resetTable } from '../engine/table'
 import { GAMES, getGame, dealCountFor } from '../games/registry'
+import HowToPlay from '../components/HowToPlay'
 
 // ── Lobby ──────────────────────────────────────────────────
 // Shows the room code, who's here, and (for the host only) the game picker and
@@ -14,6 +15,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStar
   const [dealCount, setDealCount] = useState(5)
   const [gameId, setGameId] = useState(GAMES[0].id)
   const [roomNotFound, setRoomNotFound] = useState(false)
+  const [showRules, setShowRules] = useState(false)
 
   const selectedGame = getGame(gameId)
 
@@ -31,13 +33,12 @@ export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStar
     return () => clearTimeout(timer)
   }, [isCreator, others.length])
 
-  // One generic "start" for every game: reset, deal, then let the game do any
-  // extra setup it needs (e.g. starting turns). No per-game code here.
+  // One generic "start" for every game: reset, set the mode, then let the game
+  // set itself up (deal cards, start turns, etc.). No per-game code here.
   const startGame = useMutation(({ storage }, { id, playerIds, count }) => {
     resetTable(storage)
-    dealToPlayers(storage, playerIds, count)
     storage.set('gameMode', id)
-    getGame(id).setup?.({ storage, playerIds })
+    getGame(id).setup({ storage, playerIds, count })
     storage.set('gameStarted', true)
   }, [])
 
@@ -84,6 +85,9 @@ export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStar
                 </button>
               ))}
             </div>
+            <button className="rules-link" onClick={() => setShowRules(true)}>
+              ℹ️ How to play {selectedGame.name}
+            </button>
           </div>
 
           {selectedGame.deal.pickable && (
@@ -119,6 +123,8 @@ export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStar
           <button className="big-btn back-btn" onClick={onLeave}>Leave Room</button>
         </div>
       )}
+
+      <HowToPlay game={selectedGame} open={showRules} onClose={() => setShowRules(false)} />
     </div>
   )
 }

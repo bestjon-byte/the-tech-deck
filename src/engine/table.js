@@ -17,18 +17,27 @@ export function resetTable(storage) {
   while (order.length > 0) order.delete(0)
 }
 
-// Shuffle a fresh deck and deal `count` cards to each player. Whatever is left
-// becomes the draw pile.
-export function dealToPlayers(storage, playerIds, count) {
-  const deck = storage.get('deck')
+// Deal `count` cards to each player. Whatever is left becomes the draw pile.
+// Pass your own `deck` to deal from a custom set of cards (defaults to a fresh
+// shuffled 52).
+export function dealToPlayers(storage, playerIds, count, deck = buildShuffledDeck()) {
+  const deckList = storage.get('deck')
   const hands = storage.get('hands')
-  const all = buildShuffledDeck()
   let i = 0
   for (const playerId of playerIds) {
-    hands.set(String(playerId), all.slice(i, i + count))
+    hands.set(String(playerId), deck.slice(i, i + count))
     i += count
   }
-  all.slice(i).forEach((card) => deck.push(card))
+  deck.slice(i).forEach((card) => deckList.push(card))
+}
+
+// Deal the WHOLE deck out, one card at a time, round-robin. Nothing is left in
+// the draw pile — used by games where everyone holds a stack (Snap, Sevens...).
+export function dealAll(storage, playerIds, deck = buildShuffledDeck()) {
+  const hands = storage.get('hands')
+  const piles = playerIds.map(() => [])
+  deck.forEach((card, i) => piles[i % playerIds.length].push(card))
+  playerIds.forEach((id, i) => hands.set(String(id), piles[i]))
 }
 
 // All the common in-game actions a board might need. Each takes the player id
