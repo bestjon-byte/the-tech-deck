@@ -9,9 +9,54 @@
 
 ## Tech Stack
 - Frontend: React (Vite)
-- Styling: CSS (App.css)
+- Styling: CSS (App.css) — one shared stylesheet, imported once in `App.jsx`
 - Multiplayer: Liveblocks v3 (`@liveblocks/client`, `@liveblocks/react`)
 - Liveblocks config: `src/liveblocks.config.js`
+
+## 🧱 Project Structure (building blocks)
+The app was refactored from one big `App.jsx` into small reusable pieces so we
+can add lots of games. Think of it like a box of LEGO: the games are built out
+of shared bricks.
+
+```
+src/
+  App.jsx               ← thin: routes name → landing → lobby → game
+  lib/
+    cards.js            ← deck: SUITS/VALUES, buildShuffledDeck, sortCards, rankOf/suitOf
+    identity.js         ← localStorage name + room code helpers
+  engine/
+    turns.js            ← TURNS building block: useTurns, beginTurns, advanceTurn
+    table.js            ← deck/hands/discard actions: useCardTable, dealToPlayers, resetTable
+  components/           ← reusable UI: CardFace, CardBack, Hand, Opponent, TopBar,
+                          TurnBanner, ActionMessage, ErrorBoundary
+  screens/              ← NameScreen, LandingScreen, Lobby
+  games/
+    registry.js         ← THE GAME LIBRARY — one entry per game
+    boards/             ← one board component per game (FreePlayBoard, GoFishBoard)
+    rules/              ← pure game-rule helpers (e.g. goFish.js extractBooks)
+```
+
+### Key idea: turns are NOT baked into Go Fish any more
+Whose-turn-is-it lives in `engine/turns.js`. Any turn-based game:
+- calls `beginTurns(storage, playerIds)` once when dealing (done via the game's `setup`),
+- reads `useTurns(myId)` → `{ currentTurn, playerOrder, isMyTurn, otherPlayers }`,
+- calls `advanceTurn(storage, id)` inside a mutation when a turn ends.
+
+## ➕ How to add a new game
+1. **Make a board** in `src/games/boards/MyGameBoard.jsx`. Build it from the
+   shared components (`CardFace`, `Hand`, `TopBar`, …) and hooks (`useCardTable`,
+   and `useTurns` if it's turn-based). Put any pure rules in `src/games/rules/`.
+2. **Add one entry** to `GAMES` in `src/games/registry.js`:
+   ```js
+   {
+     id: 'mygame', name: 'My Game', emoji: '🎲', Board: MyGameBoard,
+     deal: { pickable: false, perPlayer: (n) => 5 },   // or { pickable:true, default,min,max }
+     setup({ storage, playerIds }) { beginTurns(storage, playerIds) }, // optional
+     lobbyHint: (n) => 'short rules summary',                          // optional
+   }
+   ```
+That's it — the lobby button, deal logic, and game screen all pick it up
+automatically. No edits to the lobby, router, or `App.jsx` needed.
 
 ## Screens / Flow
 1. **Name screen** — first launch only, name saved to `localStorage` as `windy-player-name`
