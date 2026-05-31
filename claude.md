@@ -80,13 +80,15 @@
 ## Deployment
 - **Hosted on:** Vercel — project name `the-tech-deck`
 - **Live URL:** https://the-tech-deck.vercel.app
-- **No GitHub integration** — deploy manually with the Vercel CLI
+- **GitHub repo:** https://github.com/bestjon-byte/the-tech-deck — connected to Vercel for auto-deploys
+- **Deploy by pushing to main** — Vercel picks it up automatically
 - **Environment variables:** `VITE_LIVEBLOCKS_PUBLIC_KEY` must be set in Vercel project settings — it is NOT in the repo
 
-### Deploy manually
+### Deploy
 ```bash
-npm run build        # build locally to check for errors first
-vercel --prod        # deploy to production
+git add src/App.jsx src/App.css   # (whatever files changed)
+git commit -m "description of change"
+git push                           # Vercel auto-deploys on push to main
 ```
 
 ## Commands Guide
