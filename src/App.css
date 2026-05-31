@@ -1,0 +1,723 @@
+/* ─── Reset index.css overrides ──────────────────────────── */
+#root {
+  width: 100%;
+  max-width: 100%;
+  border: none;
+  margin: 0;
+  min-height: 100svh;
+  text-align: unset;
+  display: block;
+}
+
+h1, h2 {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  font-weight: 800;
+  color: white;
+  margin: 0;
+  letter-spacing: -0.04em;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ─── Playing Card ────────────────────────────────────────── */
+.card {
+  width: 72px;
+  height: 104px;
+  background: #ffffff;
+  border-radius: 9px;
+  position: relative;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.15),
+    0 4px 14px rgba(0,0,0,0.28),
+    inset 0 0 0 1px rgba(0,0,0,0.07);
+  color: #0f172a;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+}
+
+.card.red {
+  color: #dc2626;
+}
+
+.card-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0px;
+  line-height: 1;
+}
+
+.card-tl {
+  top: 5px;
+  left: 6px;
+}
+
+.card-br {
+  bottom: 5px;
+  right: 6px;
+  transform: rotate(180deg);
+}
+
+.card-val {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.card-suit-sm {
+  font-size: 11px;
+  line-height: 1.05;
+  margin-top: 1px;
+}
+
+.card-center-suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ─── Card Back ───────────────────────────────────────────── */
+.card-back {
+  width: 72px;
+  height: 104px;
+  border-radius: 9px;
+  background-color: #1a3566;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.05) 0px,
+      rgba(255,255,255,0.05) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255,255,255,0.05) 0px,
+      rgba(255,255,255,0.05) 1px,
+      transparent 1px,
+      transparent 7px
+    );
+  box-shadow:
+    inset 0 0 0 5px rgba(255,255,255,0.07),
+    inset 0 0 0 1px rgba(255,255,255,0.12),
+    0 3px 10px rgba(0,0,0,0.45);
+  flex-shrink: 0;
+}
+
+/* Draw pile has a stacked-deck shadow effect */
+.draw-pile-card {
+  cursor: pointer;
+  box-shadow:
+    5px 5px 0 -1px #12296e,
+    5px 5px 0 0px rgba(0,0,0,0.2),
+    3px 3px 0 -1px #1a3566,
+    3px 3px 0 0px rgba(0,0,0,0.15),
+    inset 0 0 0 5px rgba(255,255,255,0.07),
+    inset 0 0 0 1px rgba(255,255,255,0.12),
+    0 6px 20px rgba(0,0,0,0.5);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+}
+
+.draw-pile-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow:
+    6px 6px 0 -1px #12296e,
+    6px 6px 0 0px rgba(0,0,0,0.18),
+    4px 4px 0 -1px #1a3566,
+    4px 4px 0 0px rgba(0,0,0,0.12),
+    inset 0 0 0 5px rgba(255,255,255,0.07),
+    inset 0 0 0 1px rgba(255,255,255,0.12),
+    0 16px 32px rgba(0,0,0,0.6);
+}
+
+/* ─── Empty Pile Placeholder ──────────────────────────────── */
+.empty-pile {
+  width: 72px;
+  height: 104px;
+  border-radius: 9px;
+  border: 1.5px dashed rgba(255,255,255,0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.22);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  cursor: pointer;
+}
+
+.discard-empty {
+  cursor: default;
+}
+
+/* ─── Game Board ──────────────────────────────────────────── */
+.game-board {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 28%, #2d7a50 0%, #1a5c38 42%, #082a17 100%);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding-top: 56px;
+  padding-bottom: 164px;
+  overflow: hidden;
+}
+
+/* ─── Top Bar ─────────────────────────────────────────────── */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: rgba(4, 20, 10, 0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  z-index: 100;
+}
+
+.leave-btn {
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.leave-btn:hover {
+  background: rgba(255,255,255,0.16);
+  transform: scale(1.03);
+}
+
+.game-code {
+  padding: 8px 16px;
+  background: #FF9F0A;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  text-transform: uppercase;
+}
+
+/* ─── Table Layout ────────────────────────────────────────── */
+.table-top {
+  width: 100%;
+  max-width: 500px;
+  padding: 14px 14px 0;
+  flex-shrink: 0;
+}
+
+.table-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px 16px;
+  min-height: 200px;
+}
+
+/* ─── Opponents ───────────────────────────────────────────── */
+.opponents {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opponent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.opponent-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 64px;
+  flex-shrink: 0;
+}
+
+.opponent-name {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+
+.opponent-count {
+  color: rgba(255,255,255,0.35);
+  font-size: 0.65rem;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: 0.02em;
+  margin-top: 1px;
+}
+
+.opponent-cards {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.opponent-cards .card-back {
+  width: 34px;
+  height: 50px;
+  border-radius: 5px;
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,0.07),
+    0 2px 6px rgba(0,0,0,0.4);
+}
+
+.opponent-cards .card-back + .card-back {
+  margin-left: -15px;
+}
+
+/* ─── Piles Area ──────────────────────────────────────────── */
+.piles-area {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.pile-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.pile-label {
+  color: rgba(255,255,255,0.32);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+
+/* ─── Action Buttons ──────────────────────────────────────── */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.action-btn:hover {
+  opacity: 0.84;
+  transform: scale(1.06);
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+  opacity: 1;
+}
+
+.undo-btn    { background: #5E5CE6; color: white; }
+.shuffle-btn { background: #FF9F0A; color: white; }
+.sort-btn    {
+  background: rgba(255,255,255,0.11);
+  color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+/* ─── Player Hand ─────────────────────────────────────────── */
+.hand {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 28px;
+  z-index: 20;
+}
+
+.hand-controls {
+  padding-bottom: 10px;
+}
+
+.hand-scroll {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 55px 20px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hand-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hand-inner {
+  display: flex;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.hand-inner .card {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, z-index 0s;
+}
+
+.hand-inner .card + .card {
+  margin-left: -26px;
+}
+
+.hand-inner .card:hover {
+  transform: translateY(-34px) scale(1.1);
+  z-index: 30;
+  box-shadow:
+    0 18px 36px rgba(0,0,0,0.55),
+    0 4px 12px rgba(0,0,0,0.3),
+    inset 0 0 0 1px rgba(0,0,0,0.07);
+}
+
+/* ─── Landing Screen ──────────────────────────────────────── */
+.landing {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 28%, #2d7a50 0%, #1a5c38 42%, #082a17 100%);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px 28px;
+  animation: screenIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.landing-logo {
+  font-size: 4.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.45));
+  animation: logoFloat 3.5s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+.landing h1 {
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.05em;
+  text-shadow: 0 2px 28px rgba(0,0,0,0.35);
+  line-height: 1;
+}
+
+.landing-sub {
+  color: rgba(255,255,255,0.52);
+  font-size: 0.95rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.landing-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 256px;
+}
+
+/* ─── Shared Button ───────────────────────────────────────── */
+.big-btn {
+  padding: 14px 22px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.big-btn:hover:not(:disabled) {
+  opacity: 0.86;
+  transform: scale(1.02);
+}
+
+.big-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.big-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.create-btn  { background: #FF9F0A; color: white; }
+.join-btn    { background: #0A84FF; color: white; }
+.rejoin-btn  {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.82);
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.back-btn    {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.72);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ─── Join Form ───────────────────────────────────────────── */
+.join-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.85rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+
+.code-input {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  width: 185px;
+  text-align: center;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  padding: 10px 8px;
+  background: rgba(255,255,255,0.95);
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.code-input:focus {
+  border-color: #FF9F0A;
+  box-shadow: 0 0 0 4px rgba(255,159,10,0.22);
+}
+
+.name-input {
+  font-size: 1.5rem;
+  letter-spacing: 0.03em;
+  width: 220px;
+}
+
+.join-form-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* ─── Lobby Screen ────────────────────────────────────────── */
+.lobby {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 28%, #2d7a50 0%, #1a5c38 42%, #082a17 100%);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: white;
+  text-align: center;
+  padding: 40px 28px;
+  animation: screenIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lobby-code-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.38);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  margin-bottom: -6px;
+}
+
+.room-code {
+  font-size: 3.8rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  background: #FF9F0A;
+  color: white;
+  padding: 14px 28px;
+  border-radius: 18px;
+  line-height: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  box-shadow: 0 4px 20px rgba(255,159,10,0.4);
+}
+
+.lobby-sub {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.82rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  margin-top: -4px;
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 256px;
+}
+
+.player-item {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  text-align: left;
+  color: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+
+.player-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}
+
+.player-dot.mine {
+  background: #30D158;
+  box-shadow: 0 0 8px rgba(48,209,88,0.7);
+}
+
+.you-tag {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.3);
+  margin-left: auto;
+  font-style: italic;
+}
+
+/* ─── Deal Selector ───────────────────────────────────────── */
+.deal-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.deal-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.36);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+
+.deal-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 8px 16px;
+}
+
+.count-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-size: 1.15rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.14s, transform 0.12s;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  line-height: 1;
+}
+
+.count-btn:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.12);
+}
+
+.deal-count {
+  font-size: 1.6rem;
+  font-weight: 800;
+  min-width: 32px;
+  text-align: center;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.lobby-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 256px;
+  margin-top: 4px;
+}
