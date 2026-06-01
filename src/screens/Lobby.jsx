@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useOthers, useStorage, useMutation } from '../liveblocks.config'
+import { useOthers, useStorage, useMutation, useUpdateMyPresence } from '../liveblocks.config'
 import { resetTable } from '../engine/table'
 import { GAMES, getGame, dealCountFor } from '../games/registry'
 import HowToPlay from '../components/HowToPlay'
@@ -8,14 +8,27 @@ import HowToPlay from '../components/HowToPlay'
 // Shows the room code, who's here, and (for the host only) the game picker and
 // Start button. The picker and the start logic are driven entirely by the game
 // registry, so new games appear here automatically.
-export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStart }) {
+export default function Lobby({ roomCode, playerName, isCreator, onChangeName, onLeave, onStart }) {
   const others = useOthers()
+  const updateMyPresence = useUpdateMyPresence()
   const totalPlayers = others.length + 1
   const gameStarted = useStorage((root) => root.gameStarted)
   const [dealCount, setDealCount] = useState(5)
   const [gameId, setGameId] = useState(GAMES[0].id)
   const [roomNotFound, setRoomNotFound] = useState(false)
   const [showRules, setShowRules] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState(playerName)
+
+  // Save an edited name: remember it on this device AND push it to the room's
+  // presence so everyone else sees the new name straight away.
+  function saveName() {
+    const trimmed = nameDraft.trim()
+    if (!trimmed) { setEditingName(false); return }
+    onChangeName(trimmed)
+    updateMyPresence({ playerId: trimmed })
+    setEditingName(false)
+  }
 
   const selectedGame = getGame(gameId)
 
@@ -60,8 +73,34 @@ export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStar
       <div className="player-list">
         <div className="player-item">
           <span className="player-dot mine" />
-          {playerName}
-          <span className="you-tag">you</span>
+          {editingName ? (
+            <>
+              <input
+                className="name-edit-input"
+                maxLength={12}
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveName()
+                  if (e.key === 'Escape') { setNameDraft(playerName); setEditingName(false) }
+                }}
+                autoFocus
+              />
+              <button className="name-edit-btn" onClick={saveName} aria-label="Save name">✓</button>
+            </>
+          ) : (
+            <>
+              {playerName}
+              <span className="you-tag">you</span>
+              <button
+                className="name-edit-btn"
+                onClick={() => { setNameDraft(playerName); setEditingName(true) }}
+                aria-label="Edit name"
+              >
+                ✏️
+              </button>
+            </>
+          )}
         </div>
         {others.map((o) => (
           <div key={o.connectionId} className="player-item">

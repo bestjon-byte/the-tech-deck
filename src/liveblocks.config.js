@@ -11,6 +11,7 @@ export const {
   useMutation,
   useOthers,
   useSelf,
+  useUpdateMyPresence,
 } = createRoomContext(client)
 
 export { LiveList, LiveObject }

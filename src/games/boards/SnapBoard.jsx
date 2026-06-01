@@ -25,6 +25,9 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
 
   const [actionMsg, setActionMsg] = useState('')
   const [shownId, setShownId] = useState(0)
+  // Brief cool-off after a mis-snap so a single panic-mash can't drain your whole
+  // stack 5 cards at a time — you eat one penalty, then the button locks for a beat.
+  const [penaltyLock, setPenaltyLock] = useState(false)
   if (lastAction && lastAction.id !== shownId && lastAction.message) {
     setShownId(lastAction.id)
     setActionMsg(lastAction.message)
@@ -34,6 +37,12 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     const t = setTimeout(() => setActionMsg(''), 3000)
     return () => clearTimeout(t)
   }, [actionMsg])
+
+  useEffect(() => {
+    if (!penaltyLock) return
+    const t = setTimeout(() => setPenaltyLock(false), 1200)
+    return () => clearTimeout(t)
+  }, [penaltyLock])
 
   const myCount = (hands?.[myId] ?? []).length
   const topTwoMatch = centre && centre.length >= 2 && rankOf(centre[0]) === rankOf(centre[1])
@@ -60,6 +69,27 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     const snap = storage.get('snap')
     if (snap.get('winner')) return // already claimed this pile
     snap.set('winner', id)
+  }, [])
+
+  // Smacking SNAP when the top two cards DON'T match is a mis-snap: the culprit
+  // loses up to 5 cards to the bottom of the middle pile (back into play for
+  // everyone else to win). This is what stops people just mashing the button.
+  const wrongSnap = useMutation(({ storage }, id) => {
+    const snap = storage.get('snap')
+    if (snap.get('winner')) return // a real snap is resolving — ignore stray taps
+    const centreList = storage.get('discardPile')
+    // Re-check it genuinely isn't a snap, so we never punish a true (if slow) call.
+    if (centreList.length >= 2 && rankOf(centreList.get(0)) === rankOf(centreList.get(1))) return
+    const handsObj = storage.get('hands')
+    const myStack = handsObj.get(id) ?? []
+    if (myStack.length === 0) return // nothing to lose
+    const n = Math.min(5, myStack.length)
+    const penalty = myStack.slice(0, n)
+    handsObj.set(id, myStack.slice(n))
+    penalty.forEach((card) => centreList.push(card)) // push = onto the bottom of the pile
+    const la = storage.get('lastAction')
+    la.set('message', `❌ ${id} mis-snapped — lost ${n} card${n === 1 ? '' : 's'}!`)
+    la.set('id', (la.get('id') ?? 0) + 1)
   }, [])
 
   // A moment later, the pile is handed to whoever the claim settled on. This
@@ -132,11 +162,20 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
           {isMyTurn && myCount > 0 && !claimPending && (
             <button className="big-btn flip-btn" onClick={() => flipCard(myId)}>Flip a card 🃏</button>
           )}
-          {/* Anyone can snap — even a knocked-out player can fight back in. */}
+          {/* Anyone can snap — even a knocked-out player can fight back in.
+              A real match claims the pile; a wrong call costs you 5 cards. */}
           <button
             className={`big-btn snap-btn ${topTwoMatch && !claimPending ? 'armed' : ''}`}
-            onClick={() => claimSnap(myId)}
-            disabled={claimPending}
+            onClick={() => {
+              if (claimPending || penaltyLock) return
+              if (topTwoMatch) {
+                claimSnap(myId)
+              } else {
+                wrongSnap(myId)
+                setPenaltyLock(true)
+              }
+            }}
+            disabled={claimPending || penaltyLock}
           >
             SNAP!
           </button>

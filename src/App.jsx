@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import { RoomProvider, useStorage, useMutation, useOthers, LiveList, LiveObject } from './liveblocks.config'
-import { getSavedName, saveLastRoom, makeRoomCode } from './lib/identity'
+import { getSavedName, saveName, saveLastRoom, makeRoomCode } from './lib/identity'
 import { getGame } from './games/registry'
 import { resetTable } from './engine/table'
 import { GameContext } from './components/GameContext'
@@ -75,12 +75,21 @@ function App() {
     setScreen('lobby')
   }
 
+  // Remember a new name on this device and update the live app state. In the
+  // lobby this is also pushed to the room's presence so others see it instantly.
+  function handleChangeName(name) {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    saveName(trimmed)
+    setPlayerName(trimmed)
+  }
+
   if (!playerName) {
     return <NameScreen onDone={(name) => setPlayerName(name)} />
   }
 
   if (screen === 'landing') {
-    return <LandingScreen playerName={playerName} onCreate={handleCreate} onJoin={handleJoin} />
+    return <LandingScreen playerName={playerName} onChangeName={handleChangeName} onCreate={handleCreate} onJoin={handleJoin} />
   }
 
   return (
@@ -104,7 +113,7 @@ function App() {
         }}
       >
         {screen === 'lobby'
-          ? <Lobby roomCode={roomCode} playerName={playerName} isCreator={isCreator} onLeave={() => setScreen('landing')} onStart={() => setScreen('game')} />
+          ? <Lobby roomCode={roomCode} playerName={playerName} isCreator={isCreator} onChangeName={handleChangeName} onLeave={() => setScreen('landing')} onStart={() => setScreen('game')} />
           : <GameHost playerName={playerName} roomCode={roomCode} isCreator={isCreator} onLeave={() => setScreen('landing')} onExitToLobby={() => setScreen('lobby')} />
         }
       </RoomProvider>
