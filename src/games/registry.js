@@ -181,7 +181,7 @@ export const GAMES = [
         'Everyone gets 7 cards; the top of the deck is flipped to set trumps.',
         'Play one card per trick. You must follow the led suit if you can.',
         'Highest card of the led suit wins — unless someone plays a trump, which beats all.',
-        "Win no tricks in a round and you're knocked out. The first player out gets a 'dog's life' — one card they can save and play on whichever trick they fancy.",
+        "Win no tricks in a round and you're knocked out — but the first time it happens to you, you get a 'dog's life': one card you can save and play on whichever trick you fancy.",
         'Each round has one fewer card, and the round\'s top player picks the next trumps.',
       ],
       win: 'The last player left standing wins!',

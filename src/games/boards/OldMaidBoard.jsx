@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { useTurns, advanceTurnWhile, getNextTurn } from '../../engine/turns'
+import { sortCards } from '../../lib/cards'
 import { extractPairs } from '../rules/oldMaid'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
@@ -43,6 +44,11 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
     const t = setTimeout(() => setActionMsg(''), 4000)
     return () => clearTimeout(t)
   }, [actionMsg])
+
+  const sortHand = useMutation(({ storage }) => {
+    const h = storage.get('hands')
+    h.set(myId, sortCards(h.get(myId) ?? []))
+  }, [myId])
 
   const takeCard = useMutation(({ storage }, { fromId, toId, index }) => {
     const handsObj = storage.get('hands')
@@ -123,7 +129,7 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
         )}
       </div>
 
-      <Hand cards={myHand} showSort={false} hint="Your cards (pairs removed automatically)" />
+      <Hand cards={myHand} showSort onSort={sortHand} hint="Your cards (pairs removed automatically)" />
     </div>
   )
 }

@@ -4,10 +4,11 @@ import CardFace from './CardFace'
 // It's flexible so different games can reuse it:
 //   onCardClick(card)   — what happens when a card is tapped
 //   isHighlighted(card) — return true to make a card glow (optional)
+//   isPicked(card)      — return true to give a card the lifted "selected" look (optional)
 //   isGlass(card)       — return true to draw a card as see-through glass (optional)
 //   showSort / onSort   — show a Sort button and what it does (optional)
 //   hint                — small text shown next to the Sort button (optional)
-export default function Hand({ cards, onCardClick, isHighlighted, isGlass, showSort, onSort, hint }) {
+export default function Hand({ cards, onCardClick, isHighlighted, isPicked, isGlass, showSort, onSort, hint }) {
   return (
     <div className="hand">
       {cards.length > 1 && (showSort || hint) && (
@@ -24,6 +25,7 @@ export default function Hand({ cards, onCardClick, isHighlighted, isGlass, showS
               label={card.label}
               red={card.red}
               highlight={isHighlighted ? isHighlighted(card) : false}
+              picked={isPicked ? isPicked(card) : false}
               glass={isGlass ? isGlass(card) : false}
               onClick={onCardClick ? () => onCardClick(card) : undefined}
             />

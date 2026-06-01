@@ -134,16 +134,18 @@ h1, h2 {
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
 }
 
-.draw-pile-card:hover {
-  transform: translateY(-8px) scale(1.05);
-  box-shadow:
-    6px 6px 0 -1px #12296e,
-    6px 6px 0 0px rgba(0,0,0,0.18),
-    4px 4px 0 -1px #1a3566,
-    4px 4px 0 0px rgba(0,0,0,0.12),
-    inset 0 0 0 5px rgba(255,255,255,0.07),
-    inset 0 0 0 1px rgba(255,255,255,0.12),
-    0 16px 32px rgba(0,0,0,0.6);
+@media (hover: hover) {
+  .draw-pile-card:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow:
+      6px 6px 0 -1px #12296e,
+      6px 6px 0 0px rgba(0,0,0,0.18),
+      4px 4px 0 -1px #1a3566,
+      4px 4px 0 0px rgba(0,0,0,0.12),
+      inset 0 0 0 5px rgba(255,255,255,0.07),
+      inset 0 0 0 1px rgba(255,255,255,0.12),
+      0 16px 32px rgba(0,0,0,0.6);
+  }
 }
 
 /* ─── Empty Pile Placeholder ──────────────────────────────── */
@@ -422,13 +424,17 @@ h1, h2 {
   margin-left: -26px;
 }
 
-.hand-inner .card:hover {
-  transform: translateY(-34px) scale(1.1);
-  z-index: 30;
-  box-shadow:
-    0 18px 36px rgba(0,0,0,0.55),
-    0 4px 12px rgba(0,0,0,0.3),
-    inset 0 0 0 1px rgba(0,0,0,0.07);
+/* Only lift on hover for devices with a real pointer — on touchscreens a tap
+   would otherwise leave the card "stuck" up until you tapped elsewhere. */
+@media (hover: hover) {
+  .hand-inner .card:hover {
+    transform: translateY(-34px) scale(1.1);
+    z-index: 30;
+    box-shadow:
+      0 18px 36px rgba(0,0,0,0.55),
+      0 4px 12px rgba(0,0,0,0.3),
+      inset 0 0 0 1px rgba(0,0,0,0.07);
+  }
 }
 
 /* ─── Landing Screen ──────────────────────────────────────── */
@@ -1272,7 +1278,9 @@ h1, h2 {
   max-width: 320px;
 }
 .pick-card { cursor: pointer; transition: transform 0.14s; }
-.pick-card:hover { transform: translateY(-8px) scale(1.05); }
+@media (hover: hover) {
+  .pick-card:hover { transform: translateY(-8px) scale(1.05); }
+}
 
 /* ─── Sevens: tableau ─────────────────────────────────────── */
 .tableau {
@@ -1411,6 +1419,18 @@ h1, h2 {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
   transform: rotate(20deg);
   pointer-events: none;
+}
+
+/* A glass 3 sitting on the pile, with the real card showing through behind it */
+.shed-glass-stack {
+  position: relative;
+  width: 72px;
+  height: 104px;
+}
+.shed-glass-stack > * {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /* ─── Shithead ────────────────────────────────────────────── */

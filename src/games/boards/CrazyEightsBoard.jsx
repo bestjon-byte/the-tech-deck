@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { SUITS, rankOf, suitOf } from '../../lib/cards'
+import { SUITS, rankOf, suitOf, sortCards } from '../../lib/cards'
 import { useTurns, advanceTurn } from '../../engine/turns'
 import { isPlayable } from '../rules/crazyEights'
 import TopBar from '../../components/TopBar'
@@ -63,6 +63,11 @@ export default function CrazyEightsBoard({ playerName, roomCode, onLeave }) {
     // The win is detected in the board; only pass the turn if cards remain.
     if ((handsObj.get(id) ?? []).length > 0) advanceTurn(storage, id)
   }, [])
+
+  const sortHand = useMutation(({ storage }) => {
+    const h = storage.get('hands')
+    h.set(myId, sortCards(h.get(myId) ?? []))
+  }, [myId])
 
   const drawCard = useMutation(({ storage }, id) => {
     const deckList = storage.get('deck')
@@ -175,7 +180,8 @@ export default function CrazyEightsBoard({ playerName, roomCode, onLeave }) {
         cards={myHand}
         onCardClick={isMyTurn ? handleCardClick : undefined}
         isHighlighted={(card) => isMyTurn && isPlayable(card, topCard, declaredSuit)}
-        showSort={false}
+        showSort
+        onSort={sortHand}
         hint={isMyTurn ? 'Tap a glowing card to play it' : undefined}
       />
     </div>

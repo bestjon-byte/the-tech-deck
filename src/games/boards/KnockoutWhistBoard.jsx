@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { suitOf } from '../../lib/cards'
+import { suitOf, sortCards } from '../../lib/cards'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -83,7 +83,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     if (w.get('phase') !== 'play') return
     if (w.get('trickWinner')) return
     if (storage.get('currentTurn') !== id) return
-    if (id !== (w.get('dog') || '')) return
+    if (!(w.get('dogs') ?? []).includes(id)) return
     const handsObj = storage.get('hands')
     const alive = w.get('alive') ?? []
     const seating = w.get('seating') ?? []
@@ -131,12 +131,17 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     // no free solo trick for it.
     const handsObj = storage.get('hands')
     const alive = w.get('alive') ?? []
-    const dog = w.get('dog') || ''
-    const roundOver = alive.every((p) => p === dog || (handsObj.get(p) ?? []).length === 0)
+    const dogs = w.get('dogs') ?? []
+    const roundOver = alive.every((p) => dogs.includes(p) || (handsObj.get(p) ?? []).length === 0)
     if (roundOver) { endWhistRound(storage); return }
     const seating = w.get('seating') ?? []
     storage.set('currentTurn', nextLeaderAfter(seating, alive, winner, handsObj))
   }, [])
+
+  const sortHand = useMutation(({ storage }) => {
+    const h = storage.get('hands')
+    h.set(myId, sortCards(h.get(myId) ?? []))
+  }, [myId])
 
   const pickTrump = useMutation(({ storage }, { id, suit }) => {
     const w = storage.get('whist')
@@ -144,7 +149,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     if (w.get('trumpPicker') !== id) return
     const seating = w.get('seating') ?? []
     const alive = w.get('alive') ?? []
-    const { tricksWon } = dealWhistRound(storage, { seating, alive, round: w.get('round'), dog: w.get('dog') ?? '', flip: false })
+    const { tricksWon } = dealWhistRound(storage, { seating, alive, round: w.get('round'), dogs: w.get('dogs') ?? [], flip: false })
     w.set('trump', suit)
     w.set('trumpCardLabel', '')
     w.set('tricksWon', tricksWon)
@@ -179,7 +184,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     return <WinnerScreen emoji="🎩" title={`${whist.champion} wins Knockout Whist!`} onLeave={onLeave} />
   }
 
-  const { phase, trump, alive = [], seating = [], tricksWon = {}, trick = [], dog = '', round = 1, trumpPicker = '', lastResult = '' } = whist
+  const { phase, trump, alive = [], seating = [], tricksWon = {}, trick = [], dogs = [], round = 1, trumpPicker = '', lastResult = '' } = whist
   const isMyTurn = currentTurn === myId && phase === 'play' && !trickWinner
   const leadSuit = whist.leadSuit || ''
   const amOut = !alive.includes(myId)
@@ -190,7 +195,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
   const playedNames = new Set(trick.map((t) => t.player))
   const trickSkips = whist.trickSkips ?? []
   const someoneElseCanPlay = alive.some((p) => p !== myId && !playedNames.has(p) && !trickSkips.includes(p) && (hands[p] ?? []).length > 0)
-  const iAmDog = myId === dog
+  const iAmDog = dogs.includes(myId)
   const canHold = iAmDog && isMyTurn && (trick.length > 0 || someoneElseCanPlay)
 
   // Between rounds: the round's top player picks trumps for the next hand.
@@ -219,7 +224,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
           <div className="whist-standings">
             {seating.map((p) => (
               <span key={p} className={`whist-chip ${alive.includes(p) ? '' : 'out'}`}>
-                {p}{p === dog ? ' 🐶' : ''} · {alive.includes(p) ? 'in' : 'out'}
+                {p}{dogs.includes(p) ? ' 🐶' : ''} · {alive.includes(p) ? 'in' : 'out'}
               </span>
             ))}
           </div>
@@ -239,7 +244,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
           {others.map((p) => (
             <Opponent
               key={p}
-              name={`${p}${p === dog ? ' 🐶' : ''}`}
+              name={`${p}${dogs.includes(p) ? ' 🐶' : ''}`}
               sub={alive.includes(p) ? `${(hands[p] ?? []).length} cards · ${tricksWon[p] ?? 0} won` : 'knocked out'}
             />
           ))}
@@ -278,7 +283,8 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
         cards={myHand}
         onCardClick={isMyTurn ? (card) => { if (legalWhistPlay(card, myHand, leadSuit)) playCard({ id: myId, cardId: card.id }) } : undefined}
         isHighlighted={(card) => isMyTurn && legalWhistPlay(card, myHand, leadSuit)}
-        showSort={false}
+        showSort
+        onSort={sortHand}
         hint={isMyTurn ? (iAmDog ? 'Play your card, or hold it for a later trick' : (leadSuit ? `Follow ${leadSuit} if you can` : 'Your lead — tap a card')) : undefined}
       />
     </div>

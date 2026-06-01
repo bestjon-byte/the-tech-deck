@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { advanceTurnWhile } from '../../engine/turns'
-import { rankOf } from '../../lib/cards'
+import { rankOf, sortCards } from '../../lib/cards'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -30,7 +30,8 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
 
   const [actionMsg, setActionMsg] = useState('')
   const [shownId, setShownId] = useState(0)
-  const [selectedHandId, setSelectedHandId] = useState(null)
+  const [selectedHandId, setSelectedHandId] = useState(null) // swap phase: hand card to swap up
+  const [selected, setSelected] = useState([]) // play phase: same-rank cards to play together
   if (lastAction && lastAction.id !== shownId && lastAction.message) {
     setShownId(lastAction.id)
     setActionMsg(lastAction.message)
@@ -74,7 +75,14 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     la.set('id', (la.get('id') ?? 0) + 1)
   }, [])
 
-  const play = useMutation(({ storage }, { id, source, key }) => {
+  const sortHand = useMutation(({ storage }) => {
+    const h = storage.get('hands')
+    h.set(myId, sortCards(h.get(myId) ?? []))
+  }, [myId])
+
+  // Play one card OR several of the SAME rank at once. `keys` is an array of
+  // card ids for hand/faceUp, or a single [index] for a blind face-down flip.
+  const play = useMutation(({ storage }, { id, source, keys }) => {
     const sh = storage.get('shed')
     if (sh.get('phase') !== 'play') return
     if (storage.get('currentTurn') !== id) return
@@ -90,22 +98,24 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     const finishedList = sh.get('finished') ?? []
     const la = storage.get('lastAction')
 
-    let card
-    if (source === 'hand') {
-      if (hand.length === 0) return
-      card = hand.find((c) => c.id === key)
-      if (!card || !canPlay(card, top)) return
-      handsObj.set(id, hand.filter((c) => c.id !== key))
-    } else if (source === 'faceUp') {
-      if (hand.length > 0 || drawPile.length > 0) return
-      card = fu.find((c) => c.id === key)
-      if (!card || !canPlay(card, top)) return
-      sh.set(`fu:${id}`, fu.filter((c) => c.id !== key))
-    } else { // faceDown — blind flip
+    let cards
+    if (source === 'hand' || source === 'faceUp') {
+      if (source === 'faceUp' && (hand.length > 0 || drawPile.length > 0)) return
+      const pool = source === 'hand' ? hand : fu
+      cards = (keys ?? []).map((k) => pool.find((c) => c.id === k)).filter(Boolean)
+      if (cards.length === 0) return
+      const r0 = rankOf(cards[0])
+      if (!cards.every((c) => rankOf(c) === r0)) return // multiples must match rank
+      if (!canPlay(cards[0], top)) return
+      const playedIds = new Set(cards.map((c) => c.id))
+      if (source === 'hand') handsObj.set(id, hand.filter((c) => !playedIds.has(c.id)))
+      else sh.set(`fu:${id}`, fu.filter((c) => !playedIds.has(c.id)))
+    } else { // faceDown — single blind flip
       if (hand.length > 0 || fu.length > 0) return
-      card = fd[key]
+      const idx = (keys ?? [])[0]
+      const card = fd[idx]
       if (!card) return
-      faceDown[id] = fd.filter((_, i) => i !== key)
+      faceDown[id] = fd.filter((_, i) => i !== idx)
       sh.set('faceDown', faceDown)
       if (!canPlay(card, top)) {
         const taken = [...pile, card]
@@ -116,9 +126,10 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
         advanceTurnWhile(storage, id, (p) => finishedList.includes(p))
         return
       }
+      cards = [card]
     }
 
-    discardList.push(card)
+    cards.forEach((c) => discardList.push(c))
     if (source === 'hand') {
       while ((handsObj.get(id) ?? []).length < 3 && drawPile.length > 0) {
         const c = drawPile.get(0); drawPile.delete(0)
@@ -126,16 +137,17 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
       }
     }
 
-    const r = rankOf(card)
+    const r = rankOf(cards[0])
     const after = readPile(storage)
     const burned = r === '10' || topRankRun(after) >= 4
+    const label = cards.length > 1 ? `${cards.length}× ${r}` : cards[0].label
     if (burned) {
       const count = discardList.length
       while (discardList.length > 0) discardList.delete(0)
       sh.set('burned', (sh.get('burned') ?? 0) + count)
-      la.set('message', `🔥 ${id} played ${card.label} — pile burned, go again!`)
+      la.set('message', `🔥 ${id} played ${label} — pile burned, go again!`)
     } else {
-      la.set('message', `${id} played ${card.label}`)
+      la.set('message', `${id} played ${label}`)
     }
     la.set('id', (la.get('id') ?? 0) + 1)
 
@@ -152,7 +164,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     } else {
       advanceTurnWhile(storage, id, (p) => finishedNow.includes(p))
     }
-  }, [])
+  }, [myId])
 
   const pickUp = useMutation(({ storage }, { id }) => {
     const sh = storage.get('shed')
@@ -252,6 +264,24 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   const canBeat = myLayer === 'faceDown' ? true : canPlayAny(activeCards, beatTop)
   const iAmFinished = finished.includes(myId)
 
+  // Multi-select: keep only still-valid ids (cards still in my active layer).
+  const validSelected = selected.filter((sid) => activeCards.some((c) => c.id === sid))
+  const selectedRank = validSelected.length ? rankOf(activeCards.find((c) => c.id === validSelected[0])) : null
+  // Tap a playable card to add/remove it; selecting a different rank starts over.
+  const toggleSelect = (card) => {
+    if (!canPlay(card, beatTop)) return
+    setSelected((prev) => {
+      if (prev.includes(card.id)) return prev.filter((x) => x !== card.id)
+      if (selectedRank && rankOf(card) !== selectedRank) return [card.id]
+      return [...prev, card.id]
+    })
+  }
+  const playSelected = () => {
+    if (validSelected.length === 0) return
+    play({ id: myId, source: myLayer, keys: validSelected })
+    setSelected([])
+  }
+
   return (
     <div className="game-board">
       <TopBar roomCode={roomCode} onLeave={onLeave} />
@@ -282,8 +312,17 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
             <span className="pile-label">Draw · {deckCount}</span>
           </div>
           <div className="pile-col">
-            {top ? <CardFace label={top.label} red={top.red} glass={isGlass(top)} /> : <div className="empty-pile discard-empty">Pile</div>}
-            <span className="pile-label">Pile{discard.length > 0 ? ` · ${discard.length}` : ''}{top && isGlass(top) && beatTop ? ` · on ${beatTop.label}` : ''}</span>
+            {!top ? (
+              <div className="empty-pile discard-empty">Pile</div>
+            ) : isGlass(top) ? (
+              <div className="shed-glass-stack">
+                {beatTop ? <CardFace label={beatTop.label} red={beatTop.red} /> : <div className="empty-pile discard-empty">—</div>}
+                <CardFace label={top.label} red={top.red} glass />
+              </div>
+            ) : (
+              <CardFace label={top.label} red={top.red} />
+            )}
+            <span className="pile-label">Pile{discard.length > 0 ? ` · ${discard.length}` : ''}</span>
           </div>
           {burned > 0 && (
             <div className="pile-col">
@@ -296,6 +335,11 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
         {isMyTurn && !iAmFinished && (
           <div className="action-buttons">
             {myLayer === 'faceDown' && <span className="hand-hint">Flip a blind card below 👇</span>}
+            {myLayer !== 'faceDown' && validSelected.length > 0 && (
+              <button className="big-btn create-btn" onClick={playSelected}>
+                Play {validSelected.length > 1 ? `${validSelected.length}× ${selectedRank}` : selectedRank} ▶
+              </button>
+            )}
             {discard.length > 0 && (
               !canBeat && myLayer !== 'faceDown'
                 ? <button className="big-btn pass-btn" onClick={() => pickUp({ id: myId })}>Can't play — pick up pile</button>
@@ -311,7 +355,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
               <CardBack
                 key={i}
                 className={isMyTurn && myLayer === 'faceDown' ? 'pick-card' : ''}
-                onClick={isMyTurn && myLayer === 'faceDown' ? () => play({ id: myId, source: 'faceDown', key: i }) : undefined}
+                onClick={isMyTurn && myLayer === 'faceDown' ? () => play({ id: myId, source: 'faceDown', keys: [i] }) : undefined}
               />
             ))}
           </div>
@@ -324,7 +368,8 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
                   red={c.red}
                   glass={isGlass(c)}
                   highlight={isMyTurn && myLayer === 'faceUp' && canPlay(c, beatTop)}
-                  onClick={isMyTurn && myLayer === 'faceUp' && canPlay(c, beatTop) ? () => play({ id: myId, source: 'faceUp', key: c.id }) : undefined}
+                  picked={validSelected.includes(c.id)}
+                  onClick={isMyTurn && myLayer === 'faceUp' && canPlay(c, beatTop) ? () => toggleSelect(c) : undefined}
                 />
               ))}
             </div>
@@ -334,11 +379,13 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
 
       <Hand
         cards={myHand}
-        onCardClick={isMyTurn && myLayer === 'hand' ? (card) => { if (canPlay(card, beatTop)) play({ id: myId, source: 'hand', key: card.id }) } : undefined}
-        isHighlighted={(card) => isMyTurn && myLayer === 'hand' && canPlay(card, beatTop)}
+        onCardClick={isMyTurn && myLayer === 'hand' ? (card) => { if (canPlay(card, beatTop)) toggleSelect(card) } : undefined}
+        isHighlighted={(card) => isMyTurn && myLayer === 'hand' && canPlay(card, beatTop) && !validSelected.includes(card.id)}
+        isPicked={(card) => validSelected.includes(card.id)}
         isGlass={isGlass}
-        showSort={false}
-        hint={isMyTurn && myLayer === 'hand' ? (canBeat ? 'Tap a glowing card to play' : 'Nothing to play — pick up the pile') : undefined}
+        showSort
+        onSort={sortHand}
+        hint={isMyTurn && myLayer === 'hand' ? (canBeat ? 'Tap matching cards, then Play ▶' : 'Nothing to play — pick up the pile') : undefined}
       />
     </div>
   )

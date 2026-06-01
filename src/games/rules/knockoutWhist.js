@@ -20,10 +20,10 @@ export const WHIST_SUITS = SUITS
 // round, down to a single card.
 export function cardsForRound(round) { return Math.max(1, 8 - round) }
 
-// Deal a fresh hand to every alive player (the dog gets a single card). Players
-// who are out get an empty hand. When `flip` is true (round 1) the next card is
-// turned up to set trumps. Returns { trumpCard, tricksWon }.
-export function dealWhistRound(storage, { seating, alive, round, dog, flip }) {
+// Deal a fresh hand to every alive player (players on a dog's life get a single
+// card). Players who are out get an empty hand. When `flip` is true (round 1)
+// the next card is turned up to set trumps. Returns { trumpCard, tricksWon }.
+export function dealWhistRound(storage, { seating, alive, round, dogs, flip }) {
   const n = cardsForRound(round)
   const deck = buildShuffledDeck()
   const hands = storage.get('hands')
@@ -31,7 +31,7 @@ export function dealWhistRound(storage, { seating, alive, round, dog, flip }) {
   let i = 0
   for (const p of seating) {
     if (!alive.includes(p)) { hands.set(p, []); continue }
-    const count = p === dog ? 1 : n
+    const count = dogs.includes(p) ? 1 : n
     hands.set(p, deck.slice(i, i + count))
     i += count
     tricksWon[p] = 0
@@ -44,7 +44,7 @@ export function dealWhistRound(storage, { seating, alive, round, dog, flip }) {
 // Set up a brand-new game: deal round 1 and flip a trump card.
 export function setupKnockoutWhist({ storage, playerIds }) {
   const seating = [...playerIds]
-  const { trumpCard, tricksWon } = dealWhistRound(storage, { seating, alive: seating, round: 1, dog: '', flip: true })
+  const { trumpCard, tricksWon } = dealWhistRound(storage, { seating, alive: seating, round: 1, dogs: [], flip: true })
   beginTurns(storage, seating)
   const whist = storage.get('whist')
   whist.set('seating', seating)
@@ -56,10 +56,10 @@ export function setupKnockoutWhist({ storage, playerIds }) {
   whist.set('trick', [])
   whist.set('leadSuit', '')
   whist.set('trickWinner', '')
-  whist.set('trickSkips', []) // players (the dog) holding their card this trick
+  whist.set('trickSkips', []) // players (dogs) holding their card this trick
   whist.set('tricksWon', tricksWon)
-  whist.set('dog', '')
-  whist.set('dogUsed', false)
+  whist.set('dogs', []) // players currently on a dog's life (one card this round)
+  whist.set('dogsUsed', []) // players who've already spent their one dog's life
   whist.set('leader', seating[0] ?? '')
   whist.set('trumpPicker', '')
   whist.set('lastResult', '')
@@ -114,44 +114,46 @@ export function nextLeaderAfter(seating, alive, from, hands) {
   return from
 }
 
-// End-of-round bookkeeping: knock out anyone who won no tricks, hand out the
-// one-time dog's life, work out who chooses trumps next (the player who won the
-// most tricks), and either set up the next round or declare a champion.
+// End-of-round bookkeeping: knock out anyone who won no tricks, hand out a
+// dog's life to each newly knocked-out player who hasn't used theirs yet, work
+// out who chooses trumps next (the player who won the most tricks), and either
+// set up the next round or declare a champion.
 export function endWhistRound(storage) {
   const whist = storage.get('whist')
   const alive = whist.get('alive') ?? []
   const seating = whist.get('seating') ?? []
   const tricksWon = whist.get('tricksWon') ?? {}
-  const dog = whist.get('dog') ?? ''
-  let dogUsed = whist.get('dogUsed') ?? false
+  const dogsUsed = [...(whist.get('dogsUsed') ?? [])]
 
   const survivors = alive.filter((p) => (tricksWon[p] ?? 0) > 0)
   const knocked = alive.filter((p) => (tricksWon[p] ?? 0) === 0)
 
-  // The first player ever knocked out gets a single dog's life (one card next
-  // round). Only one is granted per game, and never to a player already a dog.
-  let newDog = ''
-  if (!dogUsed) {
-    const candidate = seating.find((p) => knocked.includes(p) && p !== dog)
-    if (candidate) { newDog = candidate; dogUsed = true }
+  // Every player gets one dog's life over the game: the first time they'd be
+  // knocked out and haven't spent theirs yet, they cling on with a single card.
+  // (A player already on a dog's life is in dogsUsed, so they don't get another.)
+  const newDogs = []
+  for (const p of seating) {
+    if (!knocked.includes(p)) continue
+    if (dogsUsed.includes(p)) continue
+    newDogs.push(p)
+    dogsUsed.push(p)
   }
 
-  let newAlive = [...survivors]
-  if (newDog && !newAlive.includes(newDog)) newAlive.push(newDog)
+  let newAlive = [...survivors, ...newDogs]
   newAlive = seating.filter((p) => newAlive.includes(p))
 
   whist.set('alive', newAlive)
-  whist.set('dog', newDog)
-  whist.set('dogUsed', dogUsed)
+  whist.set('dogs', newDogs)
+  whist.set('dogsUsed', dogsUsed)
 
   const out = knocked.filter((p) => !newAlive.includes(p))
   let msg = out.length ? `🪦 ${out.join(', ')} knocked out!` : 'Everyone survives!'
-  if (newDog) msg += ` ${newDog} clings on with a dog's life 🐶`
+  if (newDogs.length) msg += ` ${newDogs.join(', ')} cling on with a dog's life 🐶`
   whist.set('lastResult', msg)
 
   if (newAlive.length <= 1) {
     whist.set('phase', 'gameOver')
-    whist.set('champion', newAlive[0] ?? survivors[0] ?? '')
+    whist.set('champion', newAlive[0] ?? alive[0] ?? '')
     return
   }
 
