@@ -56,6 +56,7 @@ export function setupKnockoutWhist({ storage, playerIds }) {
   whist.set('trick', [])
   whist.set('leadSuit', '')
   whist.set('trickWinner', '')
+  whist.set('trickSkips', []) // players (the dog) holding their card this trick
   whist.set('tricksWon', tricksWon)
   whist.set('dog', '')
   whist.set('dogUsed', false)

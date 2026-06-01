@@ -61,13 +61,48 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     la.set('id', (la.get('id') ?? 0) + 1)
 
     const alive = w.get('alive') ?? []
+    const skips = w.get('trickSkips') ?? []
+    const skipSet = new Set(skips)
     const played = new Set(trick.map((t) => t.player))
-    const complete = alive.every((p) => played.has(p) || (handsObj.get(p) ?? []).length === 0)
+    const complete = alive.every((p) => played.has(p) || (handsObj.get(p) ?? []).length === 0 || skipSet.has(p))
     if (complete) {
       w.set('trickWinner', whistTrickWinner(trick, lead, w.get('trump')))
     } else {
       const seating = w.get('seating') ?? []
-      const next = nextWhistActor(seating, alive, id, played, handsObj)
+      const next = nextWhistActor(seating, alive, id, new Set([...played, ...skips]), handsObj)
+      if (next) storage.set('currentTurn', next)
+    }
+  }, [])
+
+  // The dog (on a dog's life) holds their single card, passing this trick to
+  // save it for a later one. They can hold any trick — but not start an empty
+  // one with nobody else to play, and if they never commit it they're knocked
+  // out at round's end.
+  const holdCard = useMutation(({ storage }, { id }) => {
+    const w = storage.get('whist')
+    if (w.get('phase') !== 'play') return
+    if (w.get('trickWinner')) return
+    if (storage.get('currentTurn') !== id) return
+    if (id !== (w.get('dog') || '')) return
+    const handsObj = storage.get('hands')
+    const alive = w.get('alive') ?? []
+    const seating = w.get('seating') ?? []
+    const trick = w.get('trick') ?? []
+    const skips = [...(w.get('trickSkips') ?? [])]
+    const played = new Set(trick.map((t) => t.player))
+    const otherActors = alive.filter((p) => p !== id && !played.has(p) && !skips.includes(p) && (handsObj.get(p) ?? []).length > 0)
+    if (trick.length === 0 && otherActors.length === 0) return // nobody else to play — you must lay it down
+    skips.push(id)
+    w.set('trickSkips', skips)
+    const la = storage.get('lastAction')
+    la.set('message', `🐶 ${id} saved their card`)
+    la.set('id', (la.get('id') ?? 0) + 1)
+    const skipSet = new Set(skips)
+    const complete = alive.every((p) => played.has(p) || (handsObj.get(p) ?? []).length === 0 || skipSet.has(p))
+    if (complete) {
+      w.set('trickWinner', whistTrickWinner(trick, w.get('leadSuit') || '', w.get('trump')))
+    } else {
+      const next = nextWhistActor(seating, alive, id, new Set([...played, ...skips]), handsObj)
       if (next) storage.set('currentTurn', next)
     }
   }, [])
@@ -84,15 +119,20 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     w.set('trick', [])
     w.set('leadSuit', '')
     w.set('trickWinner', '')
+    w.set('trickSkips', [])
     w.set('leader', winner)
 
     const la = storage.get('lastAction')
     la.set('message', `🏅 ${winner} won the trick`)
     la.set('id', (la.get('id') ?? 0) + 1)
 
+    // The round is over once every regular player is out of cards. A dog that
+    // never committed its held card simply wins no trick and drops out — there's
+    // no free solo trick for it.
     const handsObj = storage.get('hands')
     const alive = w.get('alive') ?? []
-    const roundOver = alive.every((p) => (handsObj.get(p) ?? []).length === 0)
+    const dog = w.get('dog') || ''
+    const roundOver = alive.every((p) => p === dog || (handsObj.get(p) ?? []).length === 0)
     if (roundOver) { endWhistRound(storage); return }
     const seating = w.get('seating') ?? []
     storage.set('currentTurn', nextLeaderAfter(seating, alive, winner, handsObj))
@@ -111,6 +151,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     w.set('trick', [])
     w.set('leadSuit', '')
     w.set('trickWinner', '')
+    w.set('trickSkips', [])
     w.set('leader', id)
     w.set('phase', 'play')
     const order = storage.get('playerOrder')
@@ -143,6 +184,14 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
   const leadSuit = whist.leadSuit || ''
   const amOut = !alive.includes(myId)
   const others = seating.filter((p) => p !== myId)
+
+  // I'm the dog and I can choose to hold my card — as long as someone else can
+  // still play this trick (I can't sit out an otherwise-empty trick).
+  const playedNames = new Set(trick.map((t) => t.player))
+  const trickSkips = whist.trickSkips ?? []
+  const someoneElseCanPlay = alive.some((p) => p !== myId && !playedNames.has(p) && !trickSkips.includes(p) && (hands[p] ?? []).length > 0)
+  const iAmDog = myId === dog
+  const canHold = iAmDog && isMyTurn && (trick.length > 0 || someoneElseCanPlay)
 
   // Between rounds: the round's top player picks trumps for the next hand.
   if (phase === 'pickTrump') {
@@ -214,6 +263,14 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
               ))}
         </div>
 
+        {isMyTurn && iAmDog && (
+          <div className="action-buttons">
+            {canHold
+              ? <button className="action-btn sort-btn" onClick={() => holdCard({ id: myId })}>🐶 Save my card for a later trick</button>
+              : <span className="hand-hint">Last chance — you must play your card now</span>}
+          </div>
+        )}
+
         {amOut && <p className="ask-empty-msg">You're out — watching the rest of the game.</p>}
       </div>
 
@@ -222,7 +279,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
         onCardClick={isMyTurn ? (card) => { if (legalWhistPlay(card, myHand, leadSuit)) playCard({ id: myId, cardId: card.id }) } : undefined}
         isHighlighted={(card) => isMyTurn && legalWhistPlay(card, myHand, leadSuit)}
         showSort={false}
-        hint={isMyTurn ? (leadSuit ? `Follow ${leadSuit} if you can` : 'Your lead — tap a card') : undefined}
+        hint={isMyTurn ? (iAmDog ? 'Play your card, or hold it for a later trick' : (leadSuit ? `Follow ${leadSuit} if you can` : 'Your lead — tap a card')) : undefined}
       />
     </div>
   )
