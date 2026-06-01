@@ -35,11 +35,15 @@ import CrazyEightsBoard from './boards/CrazyEightsBoard'
 import SnapBoard from './boards/SnapBoard'
 import OldMaidBoard from './boards/OldMaidBoard'
 import SevensBoard from './boards/SevensBoard'
+import KnockoutWhistBoard from './boards/KnockoutWhistBoard'
+import ShitheadBoard from './boards/ShitheadBoard'
 
 import { setupCrazyEights } from './rules/crazyEights'
 import { setupSnap } from './rules/snap'
 import { setupOldMaid } from './rules/oldMaid'
 import { setupSevens } from './rules/sevens'
+import { setupKnockoutWhist } from './rules/knockoutWhist'
+import { setupShithead } from './rules/shithead'
 
 export const GAMES = [
   {
@@ -161,6 +165,47 @@ export const GAMES = [
         'If you have no card you can play, you must Pass.',
       ],
       win: 'The first player to empty their hand wins!',
+    },
+  },
+  {
+    id: 'knockout',
+    name: 'Knockout Whist',
+    emoji: '🎩',
+    Board: KnockoutWhistBoard,
+    deal: { all: true }, // the game deals each round itself (hands shrink 7→1)
+    setup: setupKnockoutWhist,
+    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · win a trick each round or you're out · last one standing wins`,
+    rules: {
+      objective: 'Win at least one trick every round to survive — be the last player left in.',
+      howTo: [
+        'Everyone gets 7 cards; the top of the deck is flipped to set trumps.',
+        'Play one card per trick. You must follow the led suit if you can.',
+        'Highest card of the led suit wins — unless someone plays a trump, which beats all.',
+        "Win no tricks in a round and you're knocked out (the first one out gets a single 'dog's life').",
+        'Each round has one fewer card, and the round\'s top player picks the next trumps.',
+      ],
+      win: 'The last player left standing wins!',
+    },
+  },
+  {
+    id: 'shithead',
+    name: 'Shithead',
+    emoji: '💩',
+    Board: ShitheadBoard,
+    deal: { all: true }, // deals 3 down + 3 up + 3 in hand itself (best for 2–5)
+    setup: setupShithead,
+    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · best for 2–5 · don't be the last one holding cards!`,
+    rules: {
+      objective: 'Get rid of all your cards — hand, then face-up, then blind face-down. Last one holding cards is the Shithead!',
+      howTo: [
+        'Start by swapping your best cards up to your 3 face-up cards, then ready up.',
+        'Play a card equal to or higher than the top of the pile (refill to 3 from the deck).',
+        "Can't play? Pick up the whole pile and try again next turn.",
+        '2 resets the pile · 3 is glass (invisible — play it on anything; the card below still counts) · 10 burns the pile (go again) · four-of-a-kind burns it too.',
+        'A 7 forces the next player to go lower than 7 — you can\'t even drop a 10 on a 7!',
+        'When your hand and deck are gone, play your face-up cards, then flip the blind ones.',
+      ],
+      win: 'Everyone races to empty out — the last player still holding cards loses!',
     },
   },
 ]

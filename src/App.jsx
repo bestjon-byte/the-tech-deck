@@ -109,6 +109,8 @@ function App() {
           lastAction: new LiveObject({ message: '', id: 0 }),
           declaredSuit: '',
           snap: new LiveObject({ winner: '' }),
+          whist: new LiveObject({}),
+          shed: new LiveObject({}),
           lastDealCount: 5,
         }}
       >
