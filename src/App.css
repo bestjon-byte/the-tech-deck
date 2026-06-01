@@ -733,24 +733,55 @@ h1, h2 {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  width: 100%;
 }
 
 .mode-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  align-self: stretch;
+  margin: 0 -28px;
+  padding: 4px 28px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.mode-buttons::-webkit-scrollbar {
+  display: none;
 }
 
 .mode-btn {
-  padding: 10px 20px;
+  flex: 0 0 auto;
+  width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.06);
   color: rgba(255,255,255,0.55);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
   cursor: pointer;
+  scroll-snap-align: center;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   transition: all 0.15s;
+}
+
+.mode-emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.mode-name {
+  display: block;
 }
 
 .mode-btn:hover {

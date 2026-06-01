@@ -82,7 +82,8 @@ export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStar
                   className={`mode-btn ${gameId === g.id ? 'active' : ''}`}
                   onClick={() => setGameId(g.id)}
                 >
-                  {g.emoji} {g.name}
+                  <span className="mode-emoji">{g.emoji}</span>
+                  <span className="mode-name">{g.name}</span>
                 </button>
               ))}
             </div>
