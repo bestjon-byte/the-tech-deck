@@ -38,6 +38,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onLeave, onStar
   const startGame = useMutation(({ storage }, { id, playerIds, count }) => {
     resetTable(storage)
     storage.set('gameMode', id)
+    storage.set('lastDealCount', count) // remembered so "Play again" deals the same
     getGame(id).setup({ storage, playerIds, count })
     storage.set('gameStarted', true)
   }, [])
