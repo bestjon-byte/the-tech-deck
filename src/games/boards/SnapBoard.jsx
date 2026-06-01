@@ -19,6 +19,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
   const hands = useStorage((root) => root.hands)
   const centre = useStorage((root) => root.discardPile)
   const lastAction = useStorage((root) => root.lastAction ?? { message: '', id: 0 })
+  const snapWinner = useStorage((root) => root.snap?.winner ?? '')
 
   const { currentTurn, playerOrder, isMyTurn, otherPlayers } = useTurns(myId)
 
@@ -36,8 +37,10 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
 
   const myCount = (hands?.[myId] ?? []).length
   const topTwoMatch = centre && centre.length >= 2 && rankOf(centre[0]) === rankOf(centre[1])
+  const claimPending = !!snapWinner
 
   const flipCard = useMutation(({ storage }, id) => {
+    if (storage.get('snap').get('winner')) return // a snap is being resolved
     const handsObj = storage.get('hands')
     const myStack = handsObj.get(id) ?? []
     if (myStack.length === 0) return
@@ -48,25 +51,48 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     advanceTurnWhile(storage, id, (pid) => (handsObj.get(pid) ?? []).length === 0)
   }, [])
 
-  const snap = useMutation(({ storage }, id) => {
+  // Pressing SNAP only *claims* the pile. If several players claim at once,
+  // Liveblocks settles on one winner (last write wins) — so there's exactly one.
+  const claimSnap = useMutation(({ storage }, id) => {
     const centreList = storage.get('discardPile')
     if (centreList.length < 2) return
-    if (rankOf(centreList.get(0)) !== rankOf(centreList.get(1))) return // false snap, no harm
+    if (rankOf(centreList.get(0)) !== rankOf(centreList.get(1))) return // not a match
+    const snap = storage.get('snap')
+    if (snap.get('winner')) return // already claimed this pile
+    snap.set('winner', id)
+  }, [])
 
+  // A moment later, the pile is handed to whoever the claim settled on. This
+  // reads the single agreed winner from storage, so every client makes the
+  // SAME change — the pile can never be handed out twice. (Fixes >52 cards.)
+  const awardPile = useMutation(({ storage }) => {
+    const snap = storage.get('snap')
+    const winner = snap.get('winner')
+    if (!winner) return
+    const centreList = storage.get('discardPile')
+    if (centreList.length === 0) { snap.set('winner', ''); return }
     const handsObj = storage.get('hands')
     const won = []
     while (centreList.length > 0) { won.push(centreList.get(0)); centreList.delete(0) }
-    handsObj.set(id, [...(handsObj.get(id) ?? []), ...won]) // pile goes under your stack
+    handsObj.set(winner, [...(handsObj.get(winner) ?? []), ...won])
 
     const la = storage.get('lastAction')
-    la.set('message', `SNAP! ${id} grabbed ${won.length} cards 👏`)
+    la.set('message', `SNAP! ${winner} grabbed ${won.length} cards 👏`)
     la.set('id', (la.get('id') ?? 0) + 1)
+    snap.set('winner', '')
 
-    // If it's a knocked-out player's turn, move on to someone with cards.
-    if ((handsObj.get(storage.get('currentTurn')) ?? []).length === 0) {
-      advanceTurnWhile(storage, storage.get('currentTurn'), (pid) => (handsObj.get(pid) ?? []).length === 0)
+    const ct = storage.get('currentTurn')
+    if ((handsObj.get(ct) ?? []).length === 0) {
+      advanceTurnWhile(storage, ct, (pid) => (handsObj.get(pid) ?? []).length === 0)
     }
   }, [])
+
+  // Once a winner is claimed, give the claims a beat to settle, then award.
+  useEffect(() => {
+    if (!snapWinner) return
+    const t = setTimeout(() => awardPile(), 450)
+    return () => clearTimeout(t)
+  }, [snapWinner, awardPile])
 
   if (!hands) {
     return <div className="lobby"><p className="lobby-sub">Setting up game...</p></div>
@@ -103,13 +129,14 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
         </div>
 
         <div className="action-buttons">
-          {isMyTurn && myCount > 0 && (
+          {isMyTurn && myCount > 0 && !claimPending && (
             <button className="big-btn flip-btn" onClick={() => flipCard(myId)}>Flip a card 🃏</button>
           )}
           {/* Anyone can snap — even a knocked-out player can fight back in. */}
           <button
-            className={`big-btn snap-btn ${topTwoMatch ? 'armed' : ''}`}
-            onClick={() => snap(myId)}
+            className={`big-btn snap-btn ${topTwoMatch && !claimPending ? 'armed' : ''}`}
+            onClick={() => claimSnap(myId)}
+            disabled={claimPending}
           >
             SNAP!
           </button>
