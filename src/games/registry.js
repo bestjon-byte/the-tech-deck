@@ -113,13 +113,14 @@ export const GAMES = [
     Board: SnapBoard,
     deal: { all: true },
     setup: setupSnap,
-    lobbyHint: () => 'Flip cards to the middle · smash SNAP when two match · fastest wins the pile',
+    lobbyHint: () => 'Flip cards to the middle · smash SNAP when two match · wrong call costs you 5 cards!',
     rules: {
       objective: 'Win all the cards by being fastest to spot a match.',
       howTo: [
         'Your cards stay face down. On your turn, tap Flip to turn your top card onto the middle.',
         'Watch the middle — when the top two cards are the same number, smash SNAP!',
         'The fastest snapper wins the whole middle pile.',
+        'No mashing! Snap when the cards DON\'T match and you lose 5 cards to the pile.',
         "Run out of cards and you're out.",
       ],
       win: 'The last player still holding cards wins!',
