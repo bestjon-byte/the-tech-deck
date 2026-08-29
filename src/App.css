@@ -179,7 +179,7 @@ h1, h2 {
   flex-direction: column;
   align-items: center;
   position: relative;
-  padding-top: 56px;
+  padding-top: calc(56px + env(safe-area-inset-top, 0px));
   padding-bottom: 164px;
   overflow: hidden;
 }
@@ -190,11 +190,11 @@ h1, h2 {
   top: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  height: calc(56px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: env(safe-area-inset-top, 0px) 16px 0;
   background: rgba(4, 20, 10, 0.55);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
