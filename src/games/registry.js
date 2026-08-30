@@ -37,6 +37,7 @@ import OldMaidBoard from './boards/OldMaidBoard'
 import SevensBoard from './boards/SevensBoard'
 import KnockoutWhistBoard from './boards/KnockoutWhistBoard'
 import ShitheadBoard from './boards/ShitheadBoard'
+import BigTwoBoard from './boards/BigTwoBoard'
 
 import { setupCrazyEights } from './rules/crazyEights'
 import { setupSnap } from './rules/snap'
@@ -44,6 +45,7 @@ import { setupOldMaid } from './rules/oldMaid'
 import { setupSevens } from './rules/sevens'
 import { setupKnockoutWhist } from './rules/knockoutWhist'
 import { setupShithead } from './rules/shithead'
+import { setupBigTwo } from './rules/bigTwo'
 
 export const GAMES = [
   {
@@ -206,6 +208,26 @@ export const GAMES = [
         'When your hand and deck are gone, play your face-up cards, then flip the blind ones.',
       ],
       win: 'Everyone races to empty out — the last player still holding cards loses!',
+    },
+  },
+  {
+    id: 'bigtwo',
+    name: 'Big Two',
+    emoji: '2️⃣',
+    Board: BigTwoBoard,
+    deal: { all: true }, // deals the whole deck as evenly as possible (13 each for 4 players)
+    setup: setupBigTwo,
+    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · best with 4 · whoever holds the 3♦ leads first`,
+    rules: {
+      objective: 'Be the first to play every card in your hand.',
+      howTo: [
+        'Whoever holds the 3♦ leads first, and their opening play must include it.',
+        'Play a single, a pair, a triple, or any 5-card poker hand (straight, flush, full house, four-of-a-kind, straight flush).',
+        'Each turn you must beat the last play with a bigger one of the SAME size — or Pass.',
+        'Ranks run 3 (lowest) up to King, Ace, then 2 (highest) · suits break ties: ♦ < ♣ < ♥ < ♠.',
+        'Once everyone else has passed, the table clears and you lead again with anything.',
+      ],
+      win: 'The first player to empty their hand wins! Play carries on to rank everyone else.',
     },
   },
 ]
