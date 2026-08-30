@@ -126,23 +126,36 @@ function findThreeDiamondHolder(storage, playerIds) {
   return playerIds[0] ?? ''
 }
 
-// Deal the whole deck out evenly and set up the table for a fresh round.
-// 4 players get 13 each, 2 get 26 each. 3 players can't split 52 evenly, so
-// the 2♦ (the lowest-ranked of the four 2s) sits out of play for that round,
-// leaving 51 cards — 17 each, the standard 3-player house rule.
+// How many cards each player gets. The classic game is 4 players at 13 each;
+// 2 and 3 players both get 17 so hands feel the same size either way. Any
+// player count that doesn't divide evenly just leaves a few cards undealt.
+function handSizeFor(n) {
+  if (n === 4) return 13
+  if (n === 2 || n === 3) return 17
+  return Math.floor(52 / n) || 52
+}
+
+// Deal each player a fixed-size hand and set up the table for a fresh round.
+// Whatever's left over after dealing sits out of play for the round (kept in
+// the shared deck pile, though Big Two never draws from it).
 export function setupBigTwo({ storage, playerIds }) {
-  let deck = buildShuffledDeck()
-  if (playerIds.length === 3) {
-    deck = deck.filter((c) => !(rankOf(c) === '2' && suitOf(c) === '♦'))
-  }
+  const deck = buildShuffledDeck()
+  const size = handSizeFor(playerIds.length)
   const hands = storage.get('hands')
-  const piles = playerIds.map(() => [])
-  deck.forEach((c, i) => piles[i % playerIds.length].push(c))
-  playerIds.forEach((id, i) => hands.set(String(id), sortForBigTwo(piles[i])))
+  playerIds.forEach((id, i) => {
+    hands.set(String(id), sortForBigTwo(deck.slice(i * size, (i + 1) * size)))
+  })
+  const leftover = deck.slice(playerIds.length * size)
+  const deckList = storage.get('deck')
+  leftover.forEach((c) => deckList.push(c))
 
   beginTurns(storage, playerIds)
   const starter = findThreeDiamondHolder(storage, playerIds)
   storage.set('currentTurn', starter)
+
+  // If the deal was small enough that the 3♦ itself was left undealt, nobody
+  // can ever satisfy "must include the 3♦" — so skip that opening restriction.
+  const has3D = !leftover.some((c) => rankOf(c) === '3' && suitOf(c) === '♦')
 
   const bt = storage.get('bigTwo')
   bt.set('currentTrick', [])
@@ -150,9 +163,9 @@ export function setupBigTwo({ storage, playerIds }) {
   bt.set('leader', '')
   bt.set('passCount', 0)
   bt.set('finished', [])
-  bt.set('mustStartWith3D', true)
+  bt.set('mustStartWith3D', has3D)
 
   const la = storage.get('lastAction')
-  la.set('message', `${starter} holds the 3♦ and leads first`)
+  la.set('message', has3D ? `${starter} holds the 3♦ and leads first` : `${starter} leads first`)
   la.set('id', 0)
 }
