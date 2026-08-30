@@ -111,6 +111,7 @@ function App() {
           snap: new LiveObject({ winner: '' }),
           whist: new LiveObject({}),
           shed: new LiveObject({}),
+          bigTwo: new LiveObject({}),
           lastDealCount: 5,
         }}
       >
