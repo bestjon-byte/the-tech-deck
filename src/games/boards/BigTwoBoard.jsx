@@ -8,7 +8,7 @@ import CardFace from '../../components/CardFace'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
-import { identifyCombo, isLegalPlay, describeCombo, sortForBigTwo } from '../rules/bigTwo'
+import { identifyCombo, isLegalPlay, describeCombo, sortForBigTwo, selectableCardIds, highlightHintIds } from '../rules/bigTwo'
 
 // ── Big Two ────────────────────────────────────────────────
 // Empty your hand first to win. Beat the live combo with a bigger one of the
@@ -123,10 +123,17 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
   const potentialCombo = selectedCards.length > 0 ? identifyCombo(selectedCards) : null
   const legal = selectedCards.length > 0 && isLegalPlay(selectedCards, trickType, mustStartWith3D)
 
+  // Cards that can still join the current selection and end up a legal,
+  // trick-beating play — once at least one card is picked this is what gates
+  // further taps; with nothing picked yet it's the "smart highlight" hint.
+  const selectableIds = isMyTurn ? selectableCardIds(myHand, trickType, mustStartWith3D, selected) : new Set()
+  const hintIds = isMyTurn && selected.length === 0 ? highlightHintIds(myHand, trickType, mustStartWith3D) : new Set()
+
   const toggleSelect = (card) => {
     setSelected((prev) => {
       if (prev.includes(card.id)) return prev.filter((x) => x !== card.id)
       if (prev.length >= 5) return prev
+      if (prev.length > 0 && !selectableIds.has(card.id)) return prev
       return [...prev, card.id]
     })
   }
@@ -195,6 +202,10 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
         cards={myHand}
         onCardClick={isMyTurn ? toggleSelect : undefined}
         isPicked={(card) => selected.includes(card.id)}
+        isHighlighted={(card) => {
+          if (!isMyTurn || selected.includes(card.id)) return false
+          return selected.length === 0 ? hintIds.has(card.id) : selectableIds.has(card.id)
+        }}
         showSort
         onSort={sortHand}
         hint={isMyTurn ? 'Tap cards, then Play ▶' : undefined}

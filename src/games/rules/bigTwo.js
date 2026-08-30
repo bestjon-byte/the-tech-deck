@@ -92,6 +92,73 @@ export function isLegalPlay(cards, trickType, mustStartWith3D) {
   return combo.size === trickType.size && comboBeats(combo, trickType)
 }
 
+// All k-card subsets of `arr` (order-preserving), used to search a hand for
+// legal combos without caring which exact cards fill in a straight/flush.
+function combinations(arr, k) {
+  if (k === 0) return [[]]
+  if (k > arr.length) return []
+  const result = []
+  const combo = new Array(k)
+  const n = arr.length
+  function backtrack(start, depth) {
+    if (depth === k) { result.push(combo.slice()); return }
+    for (let i = start; i <= n - (k - depth); i++) {
+      combo[depth] = arr[i]
+      backtrack(i + 1, depth + 1)
+    }
+  }
+  backtrack(0, 0)
+  return result
+}
+
+// Which cards in `hand` could still end up in a legal play, given the cards
+// already tapped (`selectedIds`)? With nothing selected yet this is every
+// card that belongs to *some* legal combo (any size the player could lead
+// with, or the live trick's size if following) — the "smart highlight" that
+// flags a straight/flush/full house is sitting in the hand. Once one or more
+// cards are selected, it narrows to just the cards that can validly join
+// that selection, so a half-built straight only lights up the ranks that
+// would complete (and beat) it.
+export function selectableCardIds(hand, trickType, mustStartWith3D, selectedIds = []) {
+  const selectedSet = new Set(selectedIds)
+  const selectedCards = hand.filter((c) => selectedSet.has(c.id))
+  const remaining = hand.filter((c) => !selectedSet.has(c.id))
+  const sizes = trickType ? [trickType.size] : [1, 2, 3, 5]
+  const ids = new Set(selectedIds)
+  for (const size of sizes) {
+    const need = size - selectedCards.length
+    if (need < 0) continue
+    if (need === 0) {
+      if (isLegalPlay(selectedCards, trickType, mustStartWith3D)) selectedCards.forEach((c) => ids.add(c.id))
+      continue
+    }
+    for (const extra of combinations(remaining, need)) {
+      const combo = [...selectedCards, ...extra]
+      if (isLegalPlay(combo, trickType, mustStartWith3D)) combo.forEach((c) => ids.add(c.id))
+    }
+  }
+  return ids
+}
+
+// The hint highlight shown before anything is selected. Skips lone singles
+// when leading (any card can always be led solo, so highlighting all of them
+// says nothing) but still points out pairs/triples/straights/flushes/full
+// houses/quads on offer, plus the forced 3♦ opener when it applies.
+export function highlightHintIds(hand, trickType, mustStartWith3D) {
+  const sizes = trickType ? [trickType.size] : [2, 3, 5]
+  const ids = new Set()
+  for (const size of sizes) {
+    for (const combo of combinations(hand, size)) {
+      if (isLegalPlay(combo, trickType, mustStartWith3D)) combo.forEach((c) => ids.add(c.id))
+    }
+  }
+  if (mustStartWith3D) {
+    const threeD = hand.find((c) => rankOf(c) === '3' && suitOf(c) === '♦')
+    if (threeD) ids.add(threeD.id)
+  }
+  return ids
+}
+
 // A friendly description of a combo, for action messages and the Play button.
 export function describeCombo(combo, cards) {
   const r = (c) => rankOf(c)
