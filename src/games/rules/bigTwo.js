@@ -118,12 +118,13 @@ export function describeCombo(combo, cards) {
 }
 
 // Whoever holds the 3♦ leads first (the classic Big Two opening rule).
+// Returns null if nobody was actually dealt it.
 function findThreeDiamondHolder(storage, playerIds) {
   const hands = storage.get('hands')
   for (const p of playerIds) {
     if ((hands.get(p) ?? []).some((c) => rankOf(c) === '3' && suitOf(c) === '♦')) return p
   }
-  return playerIds[0] ?? ''
+  return null
 }
 
 // How many cards each player gets. The classic game is 4 players at 13 each;
@@ -139,7 +140,13 @@ function handSizeFor(n) {
 // Whatever's left over after dealing sits out of play for the round (kept in
 // the shared deck pile, though Big Two never draws from it).
 export function setupBigTwo({ storage, playerIds }) {
-  const deck = buildShuffledDeck()
+  let deck = buildShuffledDeck()
+  // 3 players can't split 52 evenly at 17 each (51 needed) — set aside the
+  // 3♦ itself, the single lowest card in the deck, so the leftover card is
+  // always the same one instead of a random one each round.
+  if (playerIds.length === 3) {
+    deck = deck.filter((c) => !(rankOf(c) === '3' && suitOf(c) === '♦'))
+  }
   const size = handSizeFor(playerIds.length)
   const hands = storage.get('hands')
   playerIds.forEach((id, i) => {
@@ -150,12 +157,9 @@ export function setupBigTwo({ storage, playerIds }) {
   leftover.forEach((c) => deckList.push(c))
 
   beginTurns(storage, playerIds)
-  const starter = findThreeDiamondHolder(storage, playerIds)
+  const holder = findThreeDiamondHolder(storage, playerIds)
+  const starter = holder ?? playerIds[0] ?? ''
   storage.set('currentTurn', starter)
-
-  // If the deal was small enough that the 3♦ itself was left undealt, nobody
-  // can ever satisfy "must include the 3♦" — so skip that opening restriction.
-  const has3D = !leftover.some((c) => rankOf(c) === '3' && suitOf(c) === '♦')
 
   const bt = storage.get('bigTwo')
   bt.set('currentTrick', [])
@@ -163,9 +167,12 @@ export function setupBigTwo({ storage, playerIds }) {
   bt.set('leader', '')
   bt.set('passCount', 0)
   bt.set('finished', [])
-  bt.set('mustStartWith3D', has3D)
+  // If nobody was actually dealt the 3♦ (it sat out for 3 players, or the
+  // 2-player deal missed it), nobody could ever satisfy "must include the
+  // 3♦" — so skip that opening restriction instead of softlocking the game.
+  bt.set('mustStartWith3D', holder !== null)
 
   const la = storage.get('lastAction')
-  la.set('message', has3D ? `${starter} holds the 3♦ and leads first` : `${starter} leads first`)
+  la.set('message', holder ? `${starter} holds the 3♦ and leads first` : `${starter} leads first`)
   la.set('id', 0)
 }

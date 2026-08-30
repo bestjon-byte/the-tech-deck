@@ -217,7 +217,11 @@ export const GAMES = [
     Board: BigTwoBoard,
     deal: { all: true }, // deals a fixed hand size: 13 each for 4 players, 17 each for 2 or 3
     setup: setupBigTwo,
-    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · ${n === 4 ? '13' : '17'} cards each · whoever holds the 3♦ leads first`,
+    lobbyHint: (n) => {
+      const size = n === 4 ? 13 : 17
+      const opener = n === 3 ? '3♦ sits out — first player leads' : 'whoever holds the 3♦ leads first'
+      return `${n} player${n === 1 ? '' : 's'} · ${size} cards each · ${opener}`
+    },
     rules: {
       objective: 'Be the first to play every card in your hand.',
       howTo: [
