@@ -126,10 +126,15 @@ function findThreeDiamondHolder(storage, playerIds) {
   return playerIds[0] ?? ''
 }
 
-// Deal the whole deck out as evenly as possible (13 each for the classic
-// 4-player game) and set up the table for a fresh round.
+// Deal the whole deck out evenly and set up the table for a fresh round.
+// 4 players get 13 each, 2 get 26 each. 3 players can't split 52 evenly, so
+// the 2♦ (the lowest-ranked of the four 2s) sits out of play for that round,
+// leaving 51 cards — 17 each, the standard 3-player house rule.
 export function setupBigTwo({ storage, playerIds }) {
-  const deck = buildShuffledDeck()
+  let deck = buildShuffledDeck()
+  if (playerIds.length === 3) {
+    deck = deck.filter((c) => !(rankOf(c) === '2' && suitOf(c) === '♦'))
+  }
   const hands = storage.get('hands')
   const piles = playerIds.map(() => [])
   deck.forEach((c, i) => piles[i % playerIds.length].push(c))

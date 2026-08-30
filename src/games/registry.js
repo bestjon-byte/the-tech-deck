@@ -215,9 +215,9 @@ export const GAMES = [
     name: 'Big Two',
     emoji: '2️⃣',
     Board: BigTwoBoard,
-    deal: { all: true }, // deals the whole deck as evenly as possible (13 each for 4 players)
+    deal: { all: true }, // deals the whole deck evenly: 13 each for 4p, 26 each for 2p, 17 each for 3p (2♦ sits out)
     setup: setupBigTwo,
-    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · best with 4 · whoever holds the 3♦ leads first`,
+    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · best with 4 (2♦ sits out for 3) · whoever holds the 3♦ leads first`,
     rules: {
       objective: 'Be the first to play every card in your hand.',
       howTo: [
