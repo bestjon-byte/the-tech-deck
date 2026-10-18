@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { advanceTurnWhile, readPlayerOrder } from '../../engine/turns'
 import TopBar from '../../components/TopBar'
@@ -8,7 +8,7 @@ import CardFace from '../../components/CardFace'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
-import { identifyCombo, isLegalPlay, describeCombo, sortForBigTwo } from '../rules/bigTwo'
+import { identifyCombo, isLegalPlay, describeCombo, sortForBigTwo, legalPlays, selectableCardIds, highlightHintIds } from '../rules/bigTwo'
 
 // ── Big Two ────────────────────────────────────────────────
 // Empty your hand first to win. Beat the live combo with a bigger one of the
@@ -94,6 +94,15 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
     advanceTurnWhile(storage, id, (p) => finished.includes(p))
   }, [])
 
+  // Every legal move in my hand (searched once per change, not on every tap).
+  const isMyTurnNow = currentTurn === myId
+  const trickNow = bigTwo?.trickType ?? null
+  const must3D = bigTwo?.mustStartWith3D ?? false
+  const plays = useMemo(
+    () => (isMyTurnNow ? legalPlays(myHand, trickNow, must3D) : []),
+    [isMyTurnNow, myHand, trickNow, must3D],
+  )
+
   if (!bigTwo || !hands || !playerOrder.length) {
     return <div className="lobby"><p className="lobby-sub">Dealing the cards…</p></div>
   }
@@ -118,9 +127,15 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
   const potentialCombo = selectedCards.length > 0 ? identifyCombo(selectedCards) : null
   const legal = selectedCards.length > 0 && isLegalPlay(selectedCards, trickType, mustStartWith3D)
 
+  // Smart highlights: with nothing tapped, light up the combos on offer; once
+  // a card is tapped, light up only the cards that can still complete it.
+  const selectableIds = selectableCardIds(plays, selected)
+  const hintIds = highlightHintIds(plays, trickType, mustStartWith3D)
+
   const toggleSelect = (card) => {
     setSelected((prev) => {
       if (prev.includes(card.id)) return prev.filter((x) => x !== card.id)
+      if (prev.length > 0 && !selectableIds.has(card.id)) return [card.id] // doesn't fit → start again with this card
       if (prev.length >= 5) return prev
       return [...prev, card.id]
     })
@@ -190,6 +205,10 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
         cards={myHand}
         onCardClick={isMyTurn ? toggleSelect : undefined}
         isPicked={(card) => selected.includes(card.id)}
+        isHighlighted={(card) => {
+          if (!isMyTurn || selected.includes(card.id)) return false
+          return selected.length === 0 ? hintIds.has(card.id) : selectableIds.has(card.id)
+        }}
         showSort
         sortWith={sortForBigTwo}
         hint={isMyTurn ? 'Tap cards, then Play ▶' : undefined}

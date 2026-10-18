@@ -92,6 +92,63 @@ export function isLegalPlay(cards, trickType, mustStartWith3D) {
   return combo.size === trickType.size && comboBeats(combo, trickType)
 }
 
+// All k-card subsets of `arr` (order-preserving), used to search a hand for
+// legal combos without caring which exact cards fill in a straight/flush.
+function combinations(arr, k) {
+  if (k === 0) return [[]]
+  if (k > arr.length) return []
+  const result = []
+  const combo = new Array(k)
+  const n = arr.length
+  function backtrack(start, depth) {
+    if (depth === k) { result.push(combo.slice()); return }
+    for (let i = start; i <= n - (k - depth); i++) {
+      combo[depth] = arr[i]
+      backtrack(i + 1, depth + 1)
+    }
+  }
+  backtrack(0, 0)
+  return result
+}
+
+// Every legal play in `hand` right now, as arrays of cards. Leading: any
+// single, pair, triple or 5-card hand. Following: only same-size combos that
+// beat `trickType`. The smart highlights below are built from this list —
+// and it's everything an AI player needs to choose its move.
+export function legalPlays(hand, trickType, mustStartWith3D) {
+  const sizes = trickType ? [trickType.size] : [1, 2, 3, 5]
+  const plays = []
+  for (const size of sizes) {
+    for (const combo of combinations(hand, size)) {
+      if (isLegalPlay(combo, trickType, mustStartWith3D)) plays.push(combo)
+    }
+  }
+  return plays
+}
+
+// Which cards could still join the cards already tapped (`selectedIds`) and
+// end up a legal play? A half-built straight only lights up the ranks that
+// would complete (and beat) it.
+export function selectableCardIds(plays, selectedIds = []) {
+  const ids = new Set()
+  for (const play of plays) {
+    if (selectedIds.every((id) => play.some((c) => c.id === id))) play.forEach((c) => ids.add(c.id))
+  }
+  return ids
+}
+
+// The hint shown before anything is tapped. Skips lone singles when leading
+// (any card can be led solo, so lighting them all says nothing) but points
+// out pairs/triples/5-card hands on offer — plus the forced 3♦ opener, since
+// every play has to include it then.
+export function highlightHintIds(plays, trickType, mustStartWith3D) {
+  const ids = new Set()
+  for (const play of plays) {
+    if (trickType || mustStartWith3D || play.length > 1) play.forEach((c) => ids.add(c.id))
+  }
+  return ids
+}
+
 // A friendly description of a combo, for action messages and the Play button.
 export function describeCombo(combo, cards) {
   const r = (c) => rankOf(c)

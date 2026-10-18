@@ -58,7 +58,7 @@ src/
 | 🔢 Sevens | whole deck | `discardPile` is the table; pass if no move |
 | 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s |
 | 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn → `shed.lastBurn` makes every phone play `BurnFX` 🔥 |
-| 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players) |
+| 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players); `legalPlays()` lists every legal move → smart highlights |
 
 Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, **?** in the game's top bar).
 
