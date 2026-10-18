@@ -8,7 +8,68 @@ import CardFace from '../../components/CardFace'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
+import { useBotTurn, useBots } from '../../engine/bots'
+import { chooseBigTwoMove } from '../ai/bigTwoBot'
 import { identifyCombo, isLegalPlay, describeCombo, sortForBigTwo, legalPlays, selectableCardIds, highlightHintIds } from '../rules/bigTwo'
+
+// Play cards / pass — plain functions so a human tap and a bot's move follow
+// exactly the same rules. Both refuse unless it's `id`'s turn.
+function doPlay(storage, { id, cardIds }) {
+  const bt = storage.get('bigTwo')
+  if (storage.get('currentTurn') !== id) return
+  const handsObj = storage.get('hands')
+  const hand = handsObj.get(id) ?? []
+  const cards = cardIds.map((cid) => hand.find((c) => c.id === cid)).filter(Boolean)
+  if (cards.length !== cardIds.length) return
+  const trickType = bt.get('trickType')
+  const mustStart = bt.get('mustStartWith3D')
+  if (!isLegalPlay(cards, trickType, mustStart)) return
+  const combo = identifyCombo(cards)
+
+  const playedIds = new Set(cardIds)
+  const newHand = hand.filter((c) => !playedIds.has(c.id))
+  handsObj.set(id, newHand)
+  bt.set('currentTrick', cards)
+  bt.set('trickType', combo)
+  bt.set('leader', id)
+  bt.set('passCount', 0)
+  if (mustStart) bt.set('mustStartWith3D', false)
+
+  const finishedList = bt.get('finished') ?? []
+  if (newHand.length === 0 && !finishedList.includes(id)) bt.set('finished', [...finishedList, id])
+
+  const la = storage.get('lastAction')
+  la.set('message', `${id} played ${describeCombo(combo, cards)}`)
+  la.set('id', (la.get('id') ?? 0) + 1)
+
+  const finishedNow = bt.get('finished') ?? []
+  advanceTurnWhile(storage, id, (p) => finishedNow.includes(p))
+}
+
+function doPass(storage, { id }) {
+  const bt = storage.get('bigTwo')
+  if (storage.get('currentTurn') !== id) return
+  if (!bt.get('trickType')) return // can't pass while leading — you must play
+  const finished = bt.get('finished') ?? []
+  const leader = bt.get('leader')
+  const order = readPlayerOrder(storage)
+  const activeOthers = order.filter((p) => p !== leader && !finished.includes(p)).length
+  const newPassCount = (bt.get('passCount') ?? 0) + 1
+
+  const la = storage.get('lastAction')
+  la.set('message', `${id} passed`)
+  la.set('id', (la.get('id') ?? 0) + 1)
+
+  if (newPassCount >= activeOthers) {
+    bt.set('currentTrick', [])
+    bt.set('trickType', null)
+    bt.set('leader', '')
+    bt.set('passCount', 0)
+  } else {
+    bt.set('passCount', newPassCount)
+  }
+  advanceTurnWhile(storage, id, (p) => finished.includes(p))
+}
 
 // ── Big Two ────────────────────────────────────────────────
 // Empty your hand first to win. Beat the live combo with a bigger one of the
@@ -37,62 +98,38 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
     return () => clearTimeout(t)
   }, [actionMsg])
 
-  const play = useMutation(({ storage }, { id, cardIds }) => {
+  const play = useMutation(({ storage }, args) => doPlay(storage, args), [])
+  const pass = useMutation(({ storage }, args) => doPass(storage, args), [])
+
+  // 🤖 A bot's go: decide from the table as it is RIGHT NOW, then play or pass.
+  const botMove = useMutation(({ storage }, botId, level) => {
+    if (storage.get('currentTurn') !== botId) return
     const bt = storage.get('bigTwo')
-    if (storage.get('currentTurn') !== id) return
     const handsObj = storage.get('hands')
-    const hand = handsObj.get(id) ?? []
-    const cards = cardIds.map((cid) => hand.find((c) => c.id === cid)).filter(Boolean)
-    if (cards.length !== cardIds.length) return
-    const trickType = bt.get('trickType')
-    const mustStart = bt.get('mustStartWith3D')
-    if (!isLegalPlay(cards, trickType, mustStart)) return
-    const combo = identifyCombo(cards)
-
-    const playedIds = new Set(cardIds)
-    const newHand = hand.filter((c) => !playedIds.has(c.id))
-    handsObj.set(id, newHand)
-    bt.set('currentTrick', cards)
-    bt.set('trickType', combo)
-    bt.set('leader', id)
-    bt.set('passCount', 0)
-    if (mustStart) bt.set('mustStartWith3D', false)
-
-    const finishedList = bt.get('finished') ?? []
-    if (newHand.length === 0 && !finishedList.includes(id)) bt.set('finished', [...finishedList, id])
-
-    const la = storage.get('lastAction')
-    la.set('message', `${id} played ${describeCombo(combo, cards)}`)
-    la.set('id', (la.get('id') ?? 0) + 1)
-
-    const finishedNow = bt.get('finished') ?? []
-    advanceTurnWhile(storage, id, (p) => finishedNow.includes(p))
-  }, [])
-
-  const pass = useMutation(({ storage }, { id }) => {
-    const bt = storage.get('bigTwo')
-    if (storage.get('currentTurn') !== id) return
-    if (!bt.get('trickType')) return // can't pass while leading — you must play
     const finished = bt.get('finished') ?? []
-    const leader = bt.get('leader')
-    const order = readPlayerOrder(storage)
-    const activeOthers = order.filter((p) => p !== leader && !finished.includes(p)).length
-    const newPassCount = (bt.get('passCount') ?? 0) + 1
-
-    const la = storage.get('lastAction')
-    la.set('message', `${id} passed`)
-    la.set('id', (la.get('id') ?? 0) + 1)
-
-    if (newPassCount >= activeOthers) {
-      bt.set('currentTrick', [])
-      bt.set('trickType', null)
-      bt.set('leader', '')
-      bt.set('passCount', 0)
-    } else {
-      bt.set('passCount', newPassCount)
-    }
-    advanceTurnWhile(storage, id, (p) => finished.includes(p))
+    const stillIn = readPlayerOrder(storage).filter((p) => !finished.includes(p))
+    if (stillIn.length <= 1 || !stillIn.includes(botId)) return // game over
+    const move = chooseBigTwoMove({
+      hand: handsObj.get(botId) ?? [],
+      trickType: bt.get('trickType'),
+      mustStartWith3D: bt.get('mustStartWith3D'),
+      level,
+      oppCounts: stillIn.filter((p) => p !== botId).map((p) => (handsObj.get(p) ?? []).length),
+    })
+    if (move) doPlay(storage, { id: botId, cardIds: move.map((c) => c.id) })
+    else doPass(storage, { id: botId })
   }, [])
+
+  const bots = useBots()
+  const finishedNow = bigTwo?.finished ?? []
+  useBotTurn({
+    myId,
+    currentTurn,
+    playerOrder,
+    act: botMove,
+    active: !!bigTwo?.finished && playerOrder.filter((p) => !finishedNow.includes(p)).length > 1,
+    watch: lastAction?.id,
+  })
 
   // Every legal move in my hand (searched once per change, not on every tap).
   const isMyTurnNow = currentTurn === myId
@@ -166,7 +203,9 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
             <Opponent
               key={p}
               name={p}
-              sub={finished.includes(p) ? `finished — #${finished.indexOf(p) + 1} ✅` : `${(hands[p] ?? []).length} cards`}
+              sub={finished.includes(p)
+                ? `finished — #${finished.indexOf(p) + 1} ✅`
+                : `${(hands[p] ?? []).length} cards${bots[p] && currentTurn === p ? ' · thinking…' : ''}`}
             />
           ))}
         </div>

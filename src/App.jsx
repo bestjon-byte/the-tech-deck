@@ -8,6 +8,7 @@ import { GameContext } from './components/GameContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import ConnectionBanner from './components/ConnectionBanner'
 import { useKeepAwake } from './lib/keepAwake'
+import { readBotNames } from './engine/bots'
 import HowToPlay from './components/HowToPlay'
 import NameScreen from './screens/NameScreen'
 import LandingScreen from './screens/LandingScreen'
@@ -31,6 +32,7 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
   const playAgain = useMutation(({ storage }) => {
     const g = getGame(storage.get('gameMode'))
     const ids = [playerName, ...others.map((o) => o.presence.playerId).filter(Boolean)]
+    if (g.bots) ids.push(...readBotNames(storage)) // 🤖 computer players play again too
     const count = storage.get('lastDealCount') ?? 5
     resetTable(storage)
     g.setup({ storage, playerIds: ids, count })
@@ -115,6 +117,7 @@ function App() {
           whist: new LiveObject({}),
           shed: new LiveObject({}),
           bigTwo: new LiveObject({}),
+          bots: new LiveObject({}), // computer players: name → 'easy' | 'medium' | 'hard'
           lastDealCount: 5,
         }}
       >

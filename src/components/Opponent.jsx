@@ -1,18 +1,22 @@
 import { useOthers, useStorage } from '../liveblocks.config'
 import CardBack from './CardBack'
+import { levelEmoji } from '../engine/bots'
 
 // One opponent row: their name, a little sub-label (card count or books),
 // and an optional visual (like a fan of face-down cards) as children.
 // A green dot means their phone is connected right now; a grey dot and "away"
 // means it isn't (screen locked, no signal, or app closed) — so you know why
 // you're waiting. Pass `id` if `name` has extras added (like Whist's 🐶).
+// Computer players show 🤖 and their level instead (they never have a phone).
 export function Opponent({ name, id = name, sub, children }) {
-  const online = useOthers((others) => others.some((o) => o.presence.playerId === id))
+  const botLevel = useStorage((root) => root.bots?.[id])
+  const phoneOnline = useOthers((others) => others.some((o) => o.presence.playerId === id))
+  const online = phoneOnline || !!botLevel
   return (
     <div className={`opponent${online ? '' : ' away'}`}>
       <div className="opponent-info">
         <span className="opponent-name">
-          <span className={`online-dot${online ? ' on' : ''}`} />
+          {botLevel ? <span className="bot-badge">🤖{levelEmoji(botLevel)}</span> : <span className={`online-dot${online ? ' on' : ''}`} />}
           {name}
         </span>
         {sub != null && <span className="opponent-count">{online ? sub : `📵 away · ${sub}`}</span>}

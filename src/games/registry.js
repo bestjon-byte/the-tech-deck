@@ -217,6 +217,7 @@ export const GAMES = [
     Board: BigTwoBoard,
     deal: { all: true }, // deals a fixed hand size: 13 each for 4 players, 17 each for 2 or 3
     setup: setupBigTwo,
+    bots: { max: 4 }, // 🤖 computer players allowed, up to 4 players in total
     lobbyHint: (n) => {
       const size = n === 4 ? 13 : 17
       const opener = n === 3 ? '3♦ sits out — first player leads' : 'whoever holds the 3♦ leads first'

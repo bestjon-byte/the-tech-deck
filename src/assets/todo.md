@@ -21,7 +21,8 @@
 - [ ] Playtest all the new games with friends and tweak the rules/feel
 - [x] Shithead: fire animation 🔥 when a 10 or four-of-a-kind burns the pile (flames, sparks, smoke, cards burn away, screen shake — on every phone!)
 - [x] Big Two smart card highlighting — lights up pairs/straights/flushes you can play, then only the cards that finish your combo
-- [ ] Big Two AI player 🤖 with difficulty settings (easy / medium / hard) — use `legalPlays()` in `rules/bigTwo.js` to list its moves
+- [x] Big Two AI player 🤖 with difficulty settings — 🙂 Easy / 😎 Medium / 😈 Hard, added from the lobby (brain: `src/games/ai/bigTwoBot.js`)
+- [ ] Make the bots even smarter? (Hard beats Medium 60% of the time) — or add bots to another game
 - [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"
 
 ## 🔍 Big review (Oct 2026) — fixes

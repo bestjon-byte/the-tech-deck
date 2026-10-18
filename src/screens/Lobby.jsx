@@ -4,6 +4,8 @@ import { resetTable } from '../engine/table'
 import { GAMES, getGame, dealCountFor } from '../games/registry'
 import HowToPlay from '../components/HowToPlay'
 import { useKeepAwake } from '../lib/keepAwake'
+import { useBots, BOT_LEVELS, BOT_NAMES, levelEmoji } from '../engine/bots'
+import { LiveObject } from '../liveblocks.config'
 
 // ── Lobby ──────────────────────────────────────────────────
 // Shows the room code, who's here, and (for the host only) the game picker and
@@ -13,7 +15,9 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
   const others = useOthers()
   const updateMyPresence = useUpdateMyPresence()
   useKeepAwake() // don't let the screen lock while waiting for the host
-  const totalPlayers = others.length + 1
+  const bots = useBots()
+  const loaded = useStorage(() => true) ?? false // null until the room's saved state arrives
+  const botNames = Object.keys(bots)
   const gameStarted = useStorage((root) => root.gameStarted)
   const [dealCount, setDealCount] = useState(5)
   const [gameId, setGameId] = useState(GAMES[0].id)
@@ -33,6 +37,22 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
   }
 
   const selectedGame = getGame(gameId)
+  const botsPlay = !!selectedGame.bots // only some games have a computer brain
+  const humanIds = [playerName, ...others.map((o) => o.presence.playerId).filter(Boolean)]
+  const totalPlayers = humanIds.length + (botsPlay ? botNames.length : 0)
+  const roomForBot = loaded && botsPlay && totalPlayers < selectedGame.bots.max
+
+  // 🤖 Add / remove a computer player (host only).
+  const addBot = useMutation(({ storage }, { level, taken }) => {
+    if (!storage.get('bots')) storage.set('bots', new LiveObject({})) // rooms made before bots existed
+    const botsObj = storage.get('bots')
+    const used = new Set([...taken, ...botsObj.keys()])
+    const name = BOT_NAMES.find((n) => !used.has(n))
+    if (name) botsObj.set(name, level)
+  }, [])
+  const removeBot = useMutation(({ storage }, name) => {
+    storage.get('bots')?.delete(name)
+  }, [])
 
   // Everyone (host and joiners) jumps to the board when the game starts.
   useEffect(() => {
@@ -59,8 +79,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
   }, [])
 
   function handleStart() {
-    const otherIds = others.map((o) => o.presence.playerId).filter(Boolean)
-    const playerIds = [playerName, ...otherIds]
+    const playerIds = [...humanIds, ...(botsPlay ? botNames : [])]
     const count = dealCountFor(selectedGame, playerIds.length, dealCount)
     startGame({ id: gameId, playerIds, count })
     // Navigation happens via the gameStarted effect above, for everyone.
@@ -110,6 +129,16 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
             {o.presence.playerId || '...'}
           </div>
         ))}
+        {botNames.map((name) => (
+          <div key={name} className={`player-item bot-item${isCreator && !botsPlay ? ' bot-sitting-out' : ''}`}>
+            <span className="bot-badge">🤖{levelEmoji(bots[name])}</span>
+            {name}
+            <span className="you-tag">{isCreator && !botsPlay ? `not in ${selectedGame.name}` : bots[name]}</span>
+            {isCreator && (
+              <button className="name-edit-btn" onClick={() => removeBot(name)} aria-label={`Remove ${name}`}>✕</button>
+            )}
+          </div>
+        ))}
       </div>
 
       {isCreator ? (
@@ -133,6 +162,25 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
             </button>
           </div>
 
+          {botsPlay && (
+            <div className="bot-adder">
+              <span className="deal-label">🤖 Add a computer player</span>
+              <div className="bot-level-buttons">
+                {BOT_LEVELS.map((l) => (
+                  <button
+                    key={l.id}
+                    className="bot-level-btn"
+                    disabled={!roomForBot}
+                    onClick={() => addBot({ level: l.id, taken: humanIds })}
+                  >
+                    {l.emoji} {l.label}
+                  </button>
+                ))}
+              </div>
+              {loaded && !roomForBot && <span className="bot-full">Table's full ({selectedGame.bots.max} players max)</span>}
+            </div>
+          )}
+
           {selectedGame.deal.pickable && (
             <div className="deal-selector">
               <span className="deal-label">Cards to deal</span>
@@ -151,7 +199,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
           )}
 
           <div className="lobby-actions">
-            <button className="big-btn create-btn" onClick={handleStart}>Start Game</button>
+            <button className="big-btn create-btn" onClick={handleStart} disabled={!loaded}>{loaded ? 'Start Game' : 'Connecting…'}</button>
             <button className="big-btn back-btn" onClick={onLeave}>Leave Room</button>
           </div>
         </>

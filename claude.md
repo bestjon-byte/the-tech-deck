@@ -36,6 +36,7 @@ src/
     turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder
     table.js            ← useCardTable (draw/play/undo/shuffle), dealToPlayers, dealAll, resetTable
     inCharge.js         ← useInCharge(): which ONE phone does an automatic move (see Multiplayer rules)
+    bots.js             ← 🤖 computer players: useBots, useBotTurn (one human phone moves for the bots), BOT_LEVELS
   components/           ← CardFace, CardBack, Hand, Opponent (+OpponentBacks), TopBar, TurnBanner,
                           ActionMessage, WinnerScreen, HowToPlay, BurnFX, ConnectionBanner, ErrorBoundary, GameContext
   screens/              ← NameScreen, LandingScreen (shows version tag), Lobby
@@ -43,6 +44,7 @@ src/
     registry.js         ← THE GAME LIBRARY — one entry per game (lobby + router + rules read it)
     boards/             ← one board component per game
     rules/              ← per-game setup + pure rule helpers
+    ai/                 ← bot brains, e.g. bigTwoBot.js chooseBigTwoMove({ hand, trickType, level… }) → cards or null (pass)
   assets/todo.md        ← Joshua's todo list
 ```
 `src/assets/hero.png`, `react.svg`, `vite.svg` are unused Vite leftovers.
@@ -75,7 +77,8 @@ Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, 
      rules: { objective: '...', howTo: ['step', 'step'], win: '...' },
    }
    ```
-4. Needs its own shared state? Add a `LiveObject` slot to `initialStorage` in `App.jsx` (like `whist`, `shed`, `bigTwo`).
+4. Want computer players? Add `bots: { max: 4 }` to the registry entry, write a brain in `games/ai/`, and in the board call `useBotTurn({ myId, currentTurn, playerOrder, act, active, watch })` with `act` = a `useMutation` that re-checks the turn and plays for the bot (see `BigTwoBoard`). Lobby "Add a computer player" buttons + Play Again pick it up.
+5. Needs its own shared state? Add a `LiveObject` slot to `initialStorage` in `App.jsx` (like `whist`, `shed`, `bigTwo`).
 
 The lobby button, deal picker, game screen, help pop-up and Play Again all pick it up automatically.
 
@@ -84,8 +87,9 @@ Liveblocks resolves clashes by **last write wins, per key**. Two phones changing
 1. **Never re-save a whole hand from a phone that isn't changing it.** Sorting is display-only: `Hand` has its own Sort toggle (`showSort`, optional `sortWith`) and never writes to storage. (Sort used to write the hand and copied cards in Old Maid / Go Fish.)
 2. **Only the acting player writes during their turn**, and mutations should re-check `storage.get('currentTurn') === id` before acting (Big Two, Whist, Shithead do).
 3. **Automatic moves** (things that happen after a timer, not a tap) must be done by exactly one phone — use `useInCharge(myId, preferredPlayer, order)`. The preferred phone does it if online, otherwise the first online player; only while connected, so a phone waking up with stale cards can't redo it.
-4. Prefer **per-player keys** for things everyone does at once (Shithead's `fu:Name`, `ready:Name`).
-5. Known remaining race: Free Play — two players tapping the draw pile at the same instant can both get the same card (deck is a `LiveList`, hands are whole arrays). A proper fix is a "one saved spot per card" model; a prototype exists on local branch `stale-tidy-rewrite` (built on an old version, don't merge — reuse the idea).
+4. **Bots** have no phone: `useBotTurn` picks one human phone (via `useInCharge`) to make their moves after a short "thinking" delay.
+5. Prefer **per-player keys** for things everyone does at once (Shithead's `fu:Name`, `ready:Name`).
+6. Known remaining race: Free Play — two players tapping the draw pile at the same instant can both get the same card (deck is a `LiveList`, hands are whole arrays). A proper fix is a "one saved spot per card" model; a prototype exists on local branch `stale-tidy-rewrite` (built on an old version, don't merge — reuse the idea).
 
 ## Liveblocks Shared State (storage)
 Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
@@ -95,6 +99,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 - `gameStarted` (bool), `gameMode` (registry id), `lastDealCount` (for Play Again)
 - `currentTurn` (name), `playerOrder` (`LiveList` of names)
 - `lastAction` — `LiveObject { message, id }`: the "what just happened" toast
+- `bots` — `LiveObject`: bot name → `'easy' | 'medium' | 'hard'` (host adds/removes in the lobby; only games with `bots` in the registry use them; older rooms may lack it — guard)
 - `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ winner }`, `whist`, `shed`, `bigTwo` (per-game `LiveObject`s)
 
 ## Screens / Flow
@@ -127,6 +132,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 
 ## Liveblocks Badge & Keys
 - The free-plan `#liveblocks-badge` is hidden in `App.css`
+- Liveblocks v3 `LiveObject` has **no `toObject()`** — use `.keys()`, `.get()`, `.toJSON()`.
 - `.env.local`: `VITE_LIVEBLOCKS_PUBLIC_KEY` (frontend) and `LIVEBLOCKS_SECRET_KEY` (only for the REST API above — never use it in frontend code)
 
 ## Deployment
