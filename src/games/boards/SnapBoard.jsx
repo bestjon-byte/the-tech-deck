@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { rankOf } from '../../lib/cards'
-import { useTurns, advanceTurnWhile } from '../../engine/turns'
+import { useTurns, advanceTurnWhile, readPlayerOrder } from '../../engine/turns'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -55,7 +55,24 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     if (myStack.length === 0) return
     const card = myStack[0]
     handsObj.set(id, myStack.slice(1))
-    storage.get('discardPile').insert(card, 0)
+    const centreList = storage.get('discardPile')
+    centreList.insert(card, 0)
+
+    // Nobody has a card left to flip and there's nothing to snap? Then the game
+    // would be stuck forever — so whoever flipped the last card survived to the
+    // end and keeps the whole pile (which makes them the winner).
+    const everyoneOut = readPlayerOrder(storage).every((pid) => (handsObj.get(pid) ?? []).length === 0)
+    const isMatch = centreList.length >= 2 && rankOf(centreList.get(0)) === rankOf(centreList.get(1))
+    if (everyoneOut && !isMatch) {
+      const pile = []
+      while (centreList.length > 0) { pile.push(centreList.get(0)); centreList.delete(0) }
+      handsObj.set(id, pile)
+      const la = storage.get('lastAction')
+      la.set('message', `${id} flipped the last card with no snap — and keeps the pile! 🏆`)
+      la.set('id', (la.get('id') ?? 0) + 1)
+      return
+    }
+
     // Move to the next player who still has cards.
     advanceTurnWhile(storage, id, (pid) => (handsObj.get(pid) ?? []).length === 0)
   }, [])
