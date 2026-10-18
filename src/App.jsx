@@ -6,6 +6,8 @@ import { getGame } from './games/registry'
 import { resetTable } from './engine/table'
 import { GameContext } from './components/GameContext'
 import ErrorBoundary from './components/ErrorBoundary'
+import ConnectionBanner from './components/ConnectionBanner'
+import { useKeepAwake } from './lib/keepAwake'
 import HowToPlay from './components/HowToPlay'
 import NameScreen from './screens/NameScreen'
 import LandingScreen from './screens/LandingScreen'
@@ -21,6 +23,7 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
   const gameStarted = useStorage((root) => root.gameStarted)
   const others = useOthers()
   const [helpOpen, setHelpOpen] = useState(false)
+  useKeepAwake() // stop the screen locking (and dropping the connection) mid-game
   const game = getGame(gameMode)
   const Board = game.Board
 
@@ -115,6 +118,7 @@ function App() {
           lastDealCount: 5,
         }}
       >
+        <ConnectionBanner />
         {screen === 'lobby'
           ? <Lobby roomCode={roomCode} playerName={playerName} isCreator={isCreator} onChangeName={handleChangeName} onLeave={() => setScreen('landing')} onStart={() => setScreen('game')} />
           : <GameHost playerName={playerName} roomCode={roomCode} isCreator={isCreator} onLeave={() => setScreen('landing')} onExitToLobby={() => setScreen('lobby')} />

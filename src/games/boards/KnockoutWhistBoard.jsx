@@ -244,6 +244,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
             <Opponent
               key={p}
               name={`${p}${dogs.includes(p) ? ' 🐶' : ''}`}
+              id={p}
               sub={alive.includes(p) ? `${(hands[p] ?? []).length} cards · ${tricksWon[p] ?? 0} won` : 'knocked out'}
             />
           ))}

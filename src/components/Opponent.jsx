@@ -3,12 +3,19 @@ import CardBack from './CardBack'
 
 // One opponent row: their name, a little sub-label (card count or books),
 // and an optional visual (like a fan of face-down cards) as children.
-export function Opponent({ name, sub, children }) {
+// A green dot means their phone is connected right now; a grey dot and "away"
+// means it isn't (screen locked, no signal, or app closed) — so you know why
+// you're waiting. Pass `id` if `name` has extras added (like Whist's 🐶).
+export function Opponent({ name, id = name, sub, children }) {
+  const online = useOthers((others) => others.some((o) => o.presence.playerId === id))
   return (
-    <div className="opponent">
+    <div className={`opponent${online ? '' : ' away'}`}>
       <div className="opponent-info">
-        <span className="opponent-name">{name}</span>
-        {sub != null && <span className="opponent-count">{sub}</span>}
+        <span className="opponent-name">
+          <span className={`online-dot${online ? ' on' : ''}`} />
+          {name}
+        </span>
+        {sub != null && <span className="opponent-count">{online ? sub : `📵 away · ${sub}`}</span>}
       </div>
       {children}
     </div>

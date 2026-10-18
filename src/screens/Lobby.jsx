@@ -3,6 +3,7 @@ import { useOthers, useStorage, useMutation, useUpdateMyPresence } from '../live
 import { resetTable } from '../engine/table'
 import { GAMES, getGame, dealCountFor } from '../games/registry'
 import HowToPlay from '../components/HowToPlay'
+import { useKeepAwake } from '../lib/keepAwake'
 
 // ── Lobby ──────────────────────────────────────────────────
 // Shows the room code, who's here, and (for the host only) the game picker and
@@ -11,6 +12,7 @@ import HowToPlay from '../components/HowToPlay'
 export default function Lobby({ roomCode, playerName, isCreator, onChangeName, onLeave, onStart }) {
   const others = useOthers()
   const updateMyPresence = useUpdateMyPresence()
+  useKeepAwake() // don't let the screen lock while waiting for the host
   const totalPlayers = others.length + 1
   const gameStarted = useStorage((root) => root.gameStarted)
   const [dealCount, setDealCount] = useState(5)

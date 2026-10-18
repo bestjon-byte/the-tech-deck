@@ -263,7 +263,43 @@ h1, h2 {
   display: flex;
   align-items: center;
   gap: 10px;
+  transition: opacity 0.3s;
 }
+
+/* Their phone isn't connected right now — fade them out */
+.opponent.away { opacity: 0.45; }
+
+.online-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  background: rgba(255,255,255,0.3);
+}
+.online-dot.on {
+  background: #30D158;
+  box-shadow: 0 0 6px rgba(48,209,88,0.7);
+}
+
+/* ─── Connection banner (only shows when YOUR signal is struggling) ─── */
+.connection-banner {
+  position: fixed;
+  top: calc(56px + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  z-index: 150;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  color: white;
+  animation: msgIn 0.25s ease;
+}
+.connection-banner.offline { background: rgba(220, 38, 38, 0.92); }
+.connection-banner.sending { background: rgba(255, 159, 10, 0.92); }
 
 .opponent-info {
   display: flex;
@@ -283,7 +319,7 @@ h1, h2 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 64px;
+  max-width: 76px;
 }
 
 .opponent-count {
