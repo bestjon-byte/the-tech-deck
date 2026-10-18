@@ -10,6 +10,7 @@ import CardBack from '../../components/CardBack'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
+import BurnFX from '../../components/BurnFX'
 import { useInCharge } from '../../engine/inCharge'
 import { canPlay, canPlayAny, topRankRun, readPile, findStarter, effectiveTop } from '../rules/shithead'
 
@@ -141,6 +142,8 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
       const count = discardList.length
       while (discardList.length > 0) discardList.delete(0)
       sh.set('burned', (sh.get('burned') ?? 0) + count)
+      // Every phone watches this to play the fire animation 🔥
+      sh.set('lastBurn', { at: Date.now(), by: id, count, why: r === '10' ? 'ten' : 'four', cards: after.slice(-4) })
       la.set('message', `🔥 ${id} played ${label} — pile burned, go again!`)
     } else {
       la.set('message', `${id} played ${label}`)
@@ -285,6 +288,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
       <TopBar roomCode={roomCode} onLeave={onLeave} />
       <TurnBanner isMyTurn={isMyTurn} currentTurn={currentTurn} emoji="💩" />
       <ActionMessage message={actionMsg} />
+      <BurnFX burn={shed.lastBurn} />
 
       <div className="table-top">
         <div className="opponents">

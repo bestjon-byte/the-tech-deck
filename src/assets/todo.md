@@ -19,7 +19,7 @@
 - [x] Add Sevens 🔢 (build runs out from the 7s)
 - [x] Every game has built-in "How to play" instructions (ℹ️ in lobby, ? in game)
 - [ ] Playtest all the new games with friends and tweak the rules/feel
-- [ ] Shithead: fire animation 🔥 when a 10 or four-of-a-kind burns the pile
+- [x] Shithead: fire animation 🔥 when a 10 or four-of-a-kind burns the pile (flames, sparks, smoke, cards burn away, screen shake — on every phone!)
 - [ ] Big Two smart card highlighting — started in a cloud session but never merged (branch `claude/big-2-card-highlighting-lpx1xk`). Finish + merge, or bin it
 - [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"
 
