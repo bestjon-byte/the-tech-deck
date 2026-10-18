@@ -20,3 +20,10 @@
 - [x] Every game has built-in "How to play" instructions (ℹ️ in lobby, ? in game)
 - [ ] Playtest all the new games with friends and tweak the rules/feel
 - [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"
+
+## 🔍 Big review (Oct 2026) — fixes
+- [x] Big hands: cards on the left were off-screen and couldn't be reached (Sevens, Big Two, Free Play 8+ cards)
+- [ ] Old Maid/Go Fish: tapping Sort while someone takes your card copies that card (the "duplicate cards" bug!)
+- [ ] Snap: game gets stuck if the last player flips all their cards without a match
+- [ ] Knockout Whist + Shithead: game waits on ONE phone (trick winner / player 1) — freezes if that phone sleeps
+- [ ] Bad signal: reconnecting banner, faster sending, keep the screen awake

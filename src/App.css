@@ -396,7 +396,6 @@ h1, h2 {
 .hand-scroll {
   width: 100%;
   display: flex;
-  justify-content: center;
   overflow-x: auto;
   padding: 55px 20px 0;
   -webkit-overflow-scrolling: touch;
@@ -407,10 +406,13 @@ h1, h2 {
   display: none;
 }
 
+/* margin: auto centres a small hand, but unlike justify-content: center it
+   never pushes a big hand off the left edge where you can't scroll to it */
 .hand-inner {
   display: flex;
   align-items: flex-end;
   flex-shrink: 0;
+  margin: 0 auto;
 }
 
 .hand-inner .card {
