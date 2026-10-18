@@ -28,11 +28,13 @@ To keep the "vibes" good and prevent the AI from getting confused, you must foll
 ### ✅ Level 1: The Looks (COMPLETE!)
 A shuffled 52-card deck, draw pile, discard pile, and a hand of cards at the bottom. Red suits are red, black suits are black. Click a card to play it. Click the draw pile to draw. Shuffle button sends discard pile back into the draw pile.
 
-### 🏠 Level 2: Creating the Room Code ← YOU ARE HERE
+### ✅ Level 2: Creating the Room Code (COMPLETE!)
 Next, you'll use Liveblocks to connect different phones. When you open the app, it should say "Create Game" or "Join Game." If you create a game, Liveblocks will give you a 4-letter code (like WIND) so your friends can type it in and sit in a virtual multiplayer lobby with you.
 
-### 🔄 Level 3: The Magic Sync
+### ✅ Level 3: The Magic Sync (COMPLETE!)
 This is where the multiplayer magic happens. You will tell Claude to link the cards to Liveblocks. When Player 1 tosses a card into the discard pile on *their* phone, Liveblocks will instantly pop it up on Player 2, 3, and 4's phones in real-time.
 
-### ⚙️ Level 4: Custom Actions
+### ⚙️ Level 4: Custom Actions ← YOU ARE HERE
 Once the basic game works, you can add your favorite custom actions! Add a button to shuffle the discard pile, let players pick up from the discard pile, and more.
+
+So far that's grown into a whole library of 9 games — Free Play, Go Fish, Crazy Eights, Snap, Old Maid, Sevens, Knockout Whist, Shithead and Big Two — playable at **https://the-tech-deck.vercel.app**. The todo list lives in `src/assets/todo.md`.

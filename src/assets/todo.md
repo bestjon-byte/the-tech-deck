@@ -1,7 +1,7 @@
 - [x] make red suites red not black
 - [x] make discard look like cards
 - [x] add an undo button!
-- [ ] sort duplicates - players are still getting the same card (can't recreate, skipping for now)
+- [x] sort duplicates - players are still getting the same card → found it! Tapping Sort while someone took your card copied it (fixed Oct 2026). One rarer case left — see Free Play below
 - [x] maitain state, someone leaves game when return cards gone
 - [ ] Game crashes and players are kicked out (need steps to reproduce)
 - [x] UI has the powered by liveblocks over the cards sometimes
@@ -20,6 +20,7 @@
 - [x] Every game has built-in "How to play" instructions (ℹ️ in lobby, ? in game)
 - [ ] Playtest all the new games with friends and tweak the rules/feel
 - [ ] Shithead: fire animation 🔥 when a 10 or four-of-a-kind burns the pile
+- [ ] Big Two smart card highlighting — started in a cloud session but never merged (branch `claude/big-2-card-highlighting-lpx1xk`). Finish + merge, or bin it
 - [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"
 
 ## 🔍 Big review (Oct 2026) — fixes
