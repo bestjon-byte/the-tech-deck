@@ -37,7 +37,7 @@ src/
     table.js            ← useCardTable (draw/play/undo/shuffle), dealToPlayers, dealAll, resetTable
     inCharge.js         ← useInCharge(): which ONE phone does an automatic move (see Multiplayer rules)
   components/           ← CardFace, CardBack, Hand, Opponent (+OpponentBacks), TopBar, TurnBanner,
-                          ActionMessage, WinnerScreen, HowToPlay, ConnectionBanner, ErrorBoundary, GameContext
+                          ActionMessage, WinnerScreen, HowToPlay, BurnFX, ConnectionBanner, ErrorBoundary, GameContext
   screens/              ← NameScreen, LandingScreen (shows version tag), Lobby
   games/
     registry.js         ← THE GAME LIBRARY — one entry per game (lobby + router + rules read it)
@@ -57,7 +57,7 @@ src/
 | 🙅 Old Maid | whole deck minus Q♣ | Pairs auto-removed; take a hidden card from next holder |
 | 🔢 Sevens | whole deck | `discardPile` is the table; pass if no move |
 | 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s |
-| 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn |
+| 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn → `shed.lastBurn` makes every phone play `BurnFX` 🔥 |
 | 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players) |
 
 Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, **?** in the game's top bar).
