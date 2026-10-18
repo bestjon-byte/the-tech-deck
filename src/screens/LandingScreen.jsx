@@ -72,6 +72,13 @@ export default function LandingScreen({ playerName, onChangeName, onCreate, onJo
           </div>
         </div>
       )}
+
+      <p className="version-tag">Updated {BUILT_AT} · v{import.meta.env.VITE_APP_VERSION}</p>
     </div>
   )
 }
+
+// When this version was built, in the phone's own time zone (e.g. "18 Oct, 14:05")
+const BUILT_AT = new Date(import.meta.env.VITE_BUILD_TIME).toLocaleString('en-GB', {
+  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+})

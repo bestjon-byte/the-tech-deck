@@ -487,6 +487,15 @@ h1, h2 {
   margin-bottom: 4px;
 }
 
+/* Small "Updated 18 Oct, 14:05 · v2b4b842" line — check it to know your phone has the latest version */
+.version-tag {
+  margin-top: 18px;
+  color: rgba(255,255,255,0.28);
+  font-size: 0.68rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  letter-spacing: 0.02em;
+}
+
 .landing-buttons {
   display: flex;
   flex-direction: column;
