@@ -10,6 +10,7 @@ import CardBack from '../../components/CardBack'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
+import { useInCharge } from '../../engine/inCharge'
 import { canPlay, canPlayAny, topRankRun, readPile, findStarter, effectiveTop } from '../rules/shithead'
 
 const isGlass = (card) => card && rankOf(card) === '3'
@@ -180,10 +181,12 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   const isReady = (p) => !!(shed && shed[`ready:${p}`])
   const everyoneReady = playerOrder.length > 0 && playerOrder.every(isReady)
 
-  // The first player kicks off play once everyone has readied up.
+  // The first player kicks off play once everyone has readied up — or, if
+  // they're offline, the next online player does.
+  const iStartPlay = useInCharge(myId, playerOrder[0], playerOrder)
   useEffect(() => {
-    if (shed?.phase === 'swap' && everyoneReady && playerOrder[0] === myId) startPlay()
-  }, [shed?.phase, everyoneReady, playerOrder, myId, startPlay])
+    if (shed?.phase === 'swap' && everyoneReady && iStartPlay) startPlay()
+  }, [shed?.phase, everyoneReady, iStartPlay, startPlay])
 
   if (!shed || !hands || !shed.phase) {
     return <div className="lobby"><p className="lobby-sub">Dealing the cards…</p></div>

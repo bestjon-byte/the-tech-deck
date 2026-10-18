@@ -26,7 +26,7 @@
 - [x] Old Maid/Go Fish: tapping Sort while someone takes your card copies that card (the "duplicate cards" bug!) — Sort now only changes YOUR screen
 - [x] Show "Updated … · v1234567" on the home screen so you know your phone has the latest version
 - [x] Snap: game gets stuck if the last player flips all their cards without a match — now the last flipper keeps the pile and wins
-- [ ] Knockout Whist + Shithead: game waits on ONE phone (trick winner / player 1) — freezes if that phone sleeps
+- [x] Knockout Whist + Shithead + Snap: game waited on ONE phone — now the next online phone takes over (engine/inCharge.js)
 - [ ] Mystery: twice a game started with everyone's cards gone and the turn stuck (saved data had currentTurn + gameMode but empty hands + playerOrder). Can't make it happen on purpose yet — if you see it, note the game + what you tapped!
 - [ ] Free Play: two people tapping the draw pile at the exact same moment can both get the same card
 - [ ] Bad signal: reconnecting banner, faster sending, keep the screen awake

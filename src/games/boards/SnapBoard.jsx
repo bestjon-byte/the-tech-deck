@@ -9,6 +9,7 @@ import CardFace from '../../components/CardFace'
 import CardBack from '../../components/CardBack'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
+import { useInCharge } from '../../engine/inCharge'
 
 // ── Snap ───────────────────────────────────────────────────
 // Your cards stay face down. On your turn you flip your top card onto the
@@ -135,11 +136,15 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
   }, [])
 
   // Once a winner is claimed, give the claims a beat to settle, then award.
+  // Only ONE phone hands the pile out (the snapper's, or the next online
+  // player's if they've dropped out) — if every phone did it, a laggy phone
+  // could hand it out again from old cards and undo someone's flip.
+  const iAwardPile = useInCharge(myId, snapWinner, playerOrder)
   useEffect(() => {
-    if (!snapWinner) return
+    if (!snapWinner || !iAwardPile) return
     const t = setTimeout(() => awardPile(), 450)
     return () => clearTimeout(t)
-  }, [snapWinner, awardPile])
+  }, [snapWinner, iAwardPile, awardPile])
 
   if (!hands) {
     return <div className="lobby"><p className="lobby-sub">Setting up game...</p></div>

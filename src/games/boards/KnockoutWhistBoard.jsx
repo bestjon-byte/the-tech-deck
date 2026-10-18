@@ -8,6 +8,7 @@ import CardFace from '../../components/CardFace'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
+import { useInCharge } from '../../engine/inCharge'
 import {
   WHIST_SUITS, cardsForRound, legalWhistPlay, whistTrickWinner,
   nextWhistActor, nextLeaderAfter, endWhistRound, dealWhistRound,
@@ -163,13 +164,16 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     la.set('id', (la.get('id') ?? 0) + 1)
   }, [])
 
+  // The trick winner's phone clears the trick — or, if they're offline, the
+  // next online player's phone does, so nobody gets stuck waiting.
   const trickWinner = whist?.trickWinner ?? ''
+  const iClearTheTrick = useInCharge(myId, trickWinner, whist?.seating ?? [])
   useEffect(() => {
-    if (trickWinner && trickWinner === myId) {
+    if (trickWinner && iClearTheTrick) {
       const t = setTimeout(() => resolveTrick(), 1600)
       return () => clearTimeout(t)
     }
-  }, [trickWinner, myId, resolveTrick])
+  }, [trickWinner, iClearTheTrick, resolveTrick])
 
   if (!whist || !hands || !whist.phase) {
     return <div className="lobby"><p className="lobby-sub">Dealing the cards…</p></div>
