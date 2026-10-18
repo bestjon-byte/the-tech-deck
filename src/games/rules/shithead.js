@@ -1,5 +1,6 @@
 import { rankOf, buildShuffledDeck } from '../../lib/cards'
 import { beginTurns } from '../../engine/turns'
+import { clearAnnouncements } from '../../engine/announce'
 
 // ── Shithead ───────────────────────────────────────────────
 // A "beating" game: get rid of all your cards (hand, then your 3 face-up, then
@@ -97,9 +98,7 @@ export function setupShithead({ storage, playerIds }) {
   }
   storage.set('currentTurn', '') // chosen once everyone's ready
 
-  const la = storage.get('lastAction')
-  la.set('message', '')
-  la.set('id', 0)
+  clearAnnouncements(storage)
 }
 
 // Whoever holds the lowest ordinary card starts (a 3 if anyone has one, else a

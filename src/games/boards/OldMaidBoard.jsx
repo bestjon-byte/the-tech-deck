@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
+import { rankOf } from '../../lib/cards'
 import { useTurns, advanceTurnWhile, getNextTurn } from '../../engine/turns'
+import { announce, useActionMessage } from '../../engine/announce'
 import { extractPairs } from '../rules/oldMaid'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
@@ -8,7 +9,7 @@ import ActionMessage from '../../components/ActionMessage'
 import CardBack from '../../components/CardBack'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
-import { Opponent } from '../../components/Opponent'
+import { Opponent, CardFan } from '../../components/Opponent'
 
 // Whoever sits after `fromId` in turn order and still has cards — the player
 // you draw from in Old Maid.
@@ -28,37 +29,39 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
   const myId = playerName
   const myHand = useStorage((root) => root.hands?.[myId] ?? [])
   const hands = useStorage((root) => root.hands)
-  const lastAction = useStorage((root) => root.lastAction ?? { message: '', id: 0 })
+  const actionMsg = useActionMessage(4000)
 
   const { currentTurn, playerOrder, isMyTurn } = useTurns(myId)
 
-  const [actionMsg, setActionMsg] = useState('')
-  const [shownId, setShownId] = useState(0)
-  if (lastAction && lastAction.id !== shownId && lastAction.message) {
-    setShownId(lastAction.id)
-    setActionMsg(lastAction.message)
-  }
-  useEffect(() => {
-    if (!actionMsg) return
-    const t = setTimeout(() => setActionMsg(''), 4000)
-    return () => clearTimeout(t)
-  }, [actionMsg])
-
   const takeCard = useMutation(({ storage }, { fromId, toId, index }) => {
+    if (storage.get('currentTurn') !== toId) return
     const handsObj = storage.get('hands')
     const fromHand = [...(handsObj.get(fromId) ?? [])]
     if (index < 0 || index >= fromHand.length) return
     const [taken] = fromHand.splice(index, 1)
     handsObj.set(fromId, fromHand)
 
-    const { newHand, pairsRemoved } = extractPairs([...(handsObj.get(toId) ?? []), taken])
+    const toHand = handsObj.get(toId) ?? []
+    const partner = toHand.find((c) => rankOf(c) === rankOf(taken))
+    const { newHand, pairsRemoved } = extractPairs([...toHand, taken])
     handsObj.set(toId, newHand)
 
-    const la = storage.get('lastAction')
-    la.set('message', pairsRemoved > 0
+    // Everyone sees a card fly across. A pair is shown off to the whole table;
+    // a Queen is a secret — only the taker (😱) and the giver (😅) find out.
+    const fx = [{ kind: 'fly', from: fromId, to: toId }]
+    if (pairsRemoved > 0 && partner) {
+      fx.push({
+        kind: 'slam', tone: 'green', title: 'PAIR!', sound: 'ding', cards: [partner, taken], burst: false,
+        who: toId, sub: `${toId} threw away a pair`, subMe: 'Nice! Two less to worry about',
+      })
+    }
+    if (rankOf(taken) === 'Q' && pairsRemoved === 0) {
+      fx.push({ kind: 'slam', to: toId, tone: 'purple', emoji: '😱', title: 'UH OH…', sub: 'You just picked up a Queen!', sound: 'sad', burst: false, shake: true })
+      fx.push({ kind: 'slam', to: fromId, tone: 'green', emoji: '😅', title: 'PHEW!', sub: `${toId} took your Queen!`, sound: 'ding', burst: false })
+    }
+    announce(storage, pairsRemoved > 0
       ? `${toId} took ${taken.label} from ${fromId} — pair! 🎉`
-      : `${toId} took a card from ${fromId}`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+      : `${toId} took a card from ${fromId}`, fx)
 
     // Pass to the next player who still holds cards.
     advanceTurnWhile(storage, toId, (pid) => (handsObj.get(pid) ?? []).length === 0)
@@ -75,10 +78,13 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
     const scores = playerOrder
       .map((p) => ({ name: p, detail: p === loser ? '🙀 Old Maid!' : '✅ safe' }))
       .sort((a) => (a.name === loser ? 1 : -1))
-    return <WinnerScreen emoji="🙅" title={loser ? `${loser} is stuck with the Old Maid!` : 'Game over!'} scores={scores} onLeave={onLeave} />
+    return <WinnerScreen emoji="🙅" rain="👵" title={loser ? `${loser} is stuck with the Old Maid!` : 'Game over!'} scores={scores} onLeave={onLeave} />
   }
 
   const target = nextHolder(playerOrder, myId, hands)
+  const takeFrom = isMyTurn && myHand.length > 0 ? target : null
+  // Who is the current player taking from? (Their seat gets a "target" ring.)
+  const victim = nextHolder(playerOrder, currentTurn, hands)
 
   return (
     <div className="game-board">
@@ -88,42 +94,43 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
 
       <div className="table-top">
         <div className="opponents">
-          {playerOrder.filter((p) => p !== myId).map((p) => (
-            <Opponent key={p} name={p} sub={`${(hands[p] ?? []).length} cards`}>
-              <div className="opponent-cards">
-                {Array.from({ length: Math.min((hands[p] ?? []).length, 13) }).map((_, i) => <CardBack key={i} />)}
-              </div>
-            </Opponent>
-          ))}
+          {playerOrder.filter((p) => p !== myId).map((p) => {
+            const n = (hands[p] ?? []).length
+            return (
+              <Opponent key={p} name={p} sub={n ? `${n} cards${p === victim ? ' · 🎯' : ''}` : 'safe 😎'}>
+                <CardFan count={n} />
+              </Opponent>
+            )
+          })}
         </div>
       </div>
 
       <div className="table-center">
-        {isMyTurn && myHand.length > 0 ? (
-          target ? (
-            <div className="ask-ui">
-              <div className="ask-label">Take a hidden card from {target}:</div>
-              <div className="pick-row">
-                {(hands[target] ?? []).map((_, i) => (
-                  <CardBack
-                    key={i}
-                    className="pick-card"
-                    onClick={() => takeCard({ fromId: target, toId: myId, index: i })}
-                  />
-                ))}
-              </div>
+        {takeFrom ? (
+          <div className="ask-ui">
+            <div className="ask-step">🫣 Take a hidden card from <b>{takeFrom}</b></div>
+            <div className="pick-row mini-cards">
+              {(hands[takeFrom] ?? []).map((_, i) => (
+                <CardBack
+                  key={i}
+                  className="pick-card"
+                  onClick={() => takeCard({ fromId: takeFrom, toId: myId, index: i })}
+                />
+              ))}
             </div>
-          ) : (
-            <p className="ask-empty-msg">Waiting for other players...</p>
-          )
+          </div>
         ) : (
           <div className="waiting-ui">
-            <div className="waiting-text">{myHand.length === 0 ? "You're safe! 😎" : `Waiting for ${currentTurn}...`}</div>
+            <div className="waiting-text">
+              {myHand.length === 0
+                ? "You're safe! 😎"
+                : victim === myId ? `👀 ${currentTurn} is picking one of YOUR cards…` : `${currentTurn} is taking a card from ${victim}…`}
+            </div>
           </div>
         )}
       </div>
 
-      <Hand cards={myHand} showSort hint="Your cards (pairs removed automatically)" />
+      <Hand cards={myHand} showSort hint="Pairs are thrown away for you" />
     </div>
   )
 }

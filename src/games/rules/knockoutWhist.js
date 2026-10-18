@@ -1,5 +1,6 @@
 import { SUITS, rankOf, suitOf, buildShuffledDeck } from '../../lib/cards'
 import { beginTurns } from '../../engine/turns'
+import { clearAnnouncements } from '../../engine/announce'
 
 // ── Knockout Whist ─────────────────────────────────────────
 // A trick-taking elimination game. Each round, everyone is dealt a hand and
@@ -64,9 +65,7 @@ export function setupKnockoutWhist({ storage, playerIds }) {
   whist.set('trumpPicker', '')
   whist.set('lastResult', '')
   whist.set('champion', '')
-  const la = storage.get('lastAction')
-  la.set('message', '')
-  la.set('id', 0)
+  clearAnnouncements(storage)
 }
 
 // Is this card a legal play? When leading (no led suit yet) anything goes;

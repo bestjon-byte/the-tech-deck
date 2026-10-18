@@ -1,18 +1,43 @@
-import { useContext } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { GameContext } from './GameContext'
+import { isMuted, setMuted, playSfx } from '../lib/sfx'
 
-// The bar across the top of every game board: Leave button, a ? help button
-// (which opens the game's instructions), and the room code.
+// The bar across the top of every game board: Leave button, a sound on/off
+// button, a ? help button (which opens the game's instructions), and the room code.
+// Leave needs two taps ("Sure?"), so a stray thumb can't drop you out of a game.
 export default function TopBar({ roomCode, onLeave }) {
   const ctx = useContext(GameContext)
+  const [muted, setMutedState] = useState(isMuted)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+
+  useEffect(() => {
+    if (!confirmLeave) return
+    const t = setTimeout(() => setConfirmLeave(false), 2500)
+    return () => clearTimeout(t)
+  }, [confirmLeave])
+
+  function toggleSound() {
+    setMuted(!muted)
+    setMutedState(!muted)
+    if (muted) playSfx('pop') // a little blip so you know sound is back on
+  }
+
   return (
     <div className="top-bar">
-      <button className="leave-btn" onClick={onLeave}>← Leave</button>
+      <button
+        className={`leave-btn${confirmLeave ? ' confirm' : ''}`}
+        onClick={() => (confirmLeave ? onLeave() : setConfirmLeave(true))}
+      >
+        {confirmLeave ? 'Leave? Tap again' : '← Leave'}
+      </button>
       <div className="top-bar-right">
+        <button className="help-btn" onClick={toggleSound} aria-label={muted ? 'Turn sound on' : 'Turn sound off'}>
+          {muted ? '🔇' : '🔊'}
+        </button>
         {ctx?.openHelp && (
-          <button className="help-btn" onClick={ctx.openHelp} title="How to play">?</button>
+          <button className="help-btn" onClick={ctx.openHelp} aria-label="How to play">?</button>
         )}
-        <div className="game-code">Room: {roomCode}</div>
+        <div className="game-code">{roomCode}</div>
       </div>
     </div>
   )

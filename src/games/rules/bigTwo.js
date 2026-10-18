@@ -1,5 +1,6 @@
 import { rankOf, suitOf, buildShuffledDeck } from '../../lib/cards'
 import { beginTurns } from '../../engine/turns'
+import { clearAnnouncements } from '../../engine/announce'
 
 // ── Big Two (a.k.a. Big 2 / Deuces) ───────────────────────────
 // A climbing game: empty your hand first to win. Ranks run 3 (lowest) up to
@@ -229,7 +230,5 @@ export function setupBigTwo({ storage, playerIds }) {
   // 3♦" — so skip that opening restriction instead of softlocking the game.
   bt.set('mustStartWith3D', holder !== null)
 
-  const la = storage.get('lastAction')
-  la.set('message', holder ? `${starter} holds the 3♦ and leads first` : `${starter} leads first`)
-  la.set('id', 0)
+  clearAnnouncements(storage, holder ? `${starter} holds the 3♦ and leads first` : `${starter} leads first`)
 }

@@ -1,6 +1,10 @@
 // A little toast that tells everyone what just happened ("Sam got 2 nines!").
-// Renders nothing when there's no message.
+// Its space is always kept, even when empty, so the table never jumps up and
+// down as messages come and go.
 export default function ActionMessage({ message }) {
-  if (!message) return null
-  return <div className="action-msg">{message}</div>
+  return (
+    <div className="action-msg-slot">
+      {message && <div key={message} className="action-msg">{message}</div>}
+    </div>
+  )
 }

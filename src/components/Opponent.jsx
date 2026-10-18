@@ -1,27 +1,55 @@
 import { useOthers, useStorage } from '../liveblocks.config'
 import CardBack from './CardBack'
 import { levelEmoji } from '../engine/bots'
+import { hueOf } from '../lib/looks'
 
-// One opponent row: their name, a little sub-label (card count or books),
-// and an optional visual (like a fan of face-down cards) as children.
-// A green dot means their phone is connected right now; a grey dot and "away"
-// means it isn't (screen locked, no signal, or app closed) — so you know why
-// you're waiting. Pass `id` if `name` has extras added (like Whist's 🐶).
-// Computer players show 🤖 and their level instead (they never have a phone).
-export function Opponent({ name, id = name, sub, children }) {
+// One opponent "seat": a coloured badge (their colour comes from hueOf) with their initial, their name, a
+// little sub-label (card count, books…) and an optional visual (like a fan of
+// face-down cards) as children.
+//   • The seat GLOWS when it's their turn, so you can see who you're waiting for.
+//   • Green dot = their phone is connected. Faded + "away" = it isn't (screen
+//     locked, no signal, app closed) — so you know why you're waiting.
+//   • Computer players show 🤖 and their level (they never have a phone).
+// Pass `id` if `name` has extras added (like Whist's 🐶). `active` overrides
+// the "is it their turn?" glow. `data-seat` lets effects fly cards to them.
+// Give it `onClick` to make the seat tappable (Go Fish: tap who to ask), and
+// `selected` to light it up.
+export function Opponent({ name, id = name, sub, children, active, onClick, selected }) {
   const botLevel = useStorage((root) => root.bots?.[id])
+  const currentTurn = useStorage((root) => root.currentTurn)
+  const seat = useStorage((root) => (root.playerOrder ?? []).indexOf(id))
   const phoneOnline = useOthers((others) => others.some((o) => o.presence.playerId === id))
   const online = phoneOnline || !!botLevel
+  const theirTurn = active ?? currentTurn === id
   return (
-    <div className={`opponent${online ? '' : ' away'}`}>
-      <div className="opponent-info">
-        <span className="opponent-name">
-          {botLevel ? <span className="bot-badge">🤖{levelEmoji(botLevel)}</span> : <span className={`online-dot${online ? ' on' : ''}`} />}
-          {name}
+    <div
+      className={`opponent${online ? '' : ' away'}${theirTurn ? ' is-turn' : ''}${onClick ? ' tappable' : ''}${selected ? ' selected' : ''}`}
+      data-seat={id}
+      onClick={onClick}
+      style={{ '--hue': hueOf(id, seat) }}
+    >
+      <div className="seat-head">
+        <span className="seat-avatar">
+          {botLevel ? '🤖' : (id[0] ?? '?').toUpperCase()}
+          {!botLevel && <span className={`online-dot${online ? ' on' : ''}`} />}
         </span>
-        {sub != null && <span className="opponent-count">{online ? sub : `📵 away · ${sub}`}</span>}
+        <span className="opponent-name">
+          {name}
+          {botLevel && <span className="bot-badge"> {levelEmoji(botLevel)}</span>}
+        </span>
       </div>
-      {children}
+      {sub != null && <span className="opponent-count">{online ? sub : `📵 away · ${sub}`}</span>}
+      {children && <div className="seat-extra">{children}</div>}
+    </div>
+  )
+}
+
+// A small fan of face-down cards (at most 10 drawn, so a seat never gets too wide).
+export function CardFan({ count }) {
+  if (!count) return null
+  return (
+    <div className="opponent-cards">
+      {Array.from({ length: Math.min(count, 10) }, (_, i) => <CardBack key={i} />)}
     </div>
   )
 }
@@ -39,12 +67,8 @@ export function OpponentBacks() {
         const name = other.presence.playerId || '?'
         const count = (hands[name] ?? []).length
         return (
-          <Opponent key={other.connectionId} name={name} sub={`${count} cards`}>
-            <div className="opponent-cards">
-              {Array.from({ length: Math.min(count, 13) }).map((_, i) => (
-                <CardBack key={i} />
-              ))}
-            </div>
+          <Opponent key={other.connectionId} name={name} sub={`${count} cards`} active={false}>
+            <CardFan count={count} />
           </Opponent>
         )
       })}

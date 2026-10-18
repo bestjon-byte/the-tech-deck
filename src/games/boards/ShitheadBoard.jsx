@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { advanceTurnWhile } from '../../engine/turns'
+import { announce, useActionMessage } from '../../engine/announce'
+import { useAutoPass } from '../../engine/autoPass'
 import { rankOf } from '../../lib/cards'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
+import AutoPassNotice from '../../components/AutoPassNotice'
 import CardFace from '../../components/CardFace'
 import CardBack from '../../components/CardBack'
 import Hand from '../../components/Hand'
@@ -15,6 +18,28 @@ import { useInCharge } from '../../engine/inCharge'
 import { canPlay, canPlayAny, topRankRun, readPile, findStarter, effectiveTop } from '../rules/shithead'
 
 const isGlass = (card) => card && rankOf(card) === '3'
+
+// Which cards is this player playing from right now: hand, then face-up, then
+// the blind face-down ones.
+function layerOf(hand, faceUp) {
+  return hand.length > 0 ? 'hand' : (faceUp.length > 0 ? 'faceUp' : 'faceDown')
+}
+
+// Pick up the whole pile (used by the button AND by auto pick-up).
+function doPickUp(storage, id, why = '') {
+  const sh = storage.get('shed')
+  const discardList = storage.get('discardPile')
+  const pile = readPile(storage)
+  if (pile.length === 0) return
+  const handsObj = storage.get('hands')
+  while (discardList.length > 0) discardList.delete(0)
+  handsObj.set(id, [...(handsObj.get(id) ?? []), ...pile])
+  announce(storage, `😤 ${id} ${why}picked up ${pile.length} cards`, [
+    { kind: 'slam', tone: 'brown', emoji: '😤', title: 'PICK UP!', burst: false, sound: 'sad', who: id, sub: `${id} takes ${pile.length} card${pile.length === 1 ? '' : 's'}`, subMe: `You take ${pile.length} card${pile.length === 1 ? '' : 's'}` },
+    { kind: 'fly', from: '@pile', to: id, count: pile.length, sound: null },
+  ])
+  advanceTurnWhile(storage, id, (p) => (sh.get('finished') ?? []).includes(p))
+}
 
 // ── Shithead ───────────────────────────────────────────────
 // Empty your hand, then your face-up cards, then your blind face-down cards.
@@ -28,21 +53,11 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   const deckCount = useStorage((root) => root.deck?.length ?? 0)
   const currentTurn = useStorage((root) => root.currentTurn ?? '')
   const playerOrder = useStorage((root) => root.playerOrder ?? [])
-  const lastAction = useStorage((root) => root.lastAction ?? { message: '', id: 0 })
+  const lastActionId = useStorage((root) => root.lastAction?.id ?? 0)
+  const actionMsg = useActionMessage(3500)
 
-  const [actionMsg, setActionMsg] = useState('')
-  const [shownId, setShownId] = useState(0)
   const [selectedHandId, setSelectedHandId] = useState(null) // swap phase: hand card to swap up
   const [selected, setSelected] = useState([]) // play phase: same-rank cards to play together
-  if (lastAction && lastAction.id !== shownId && lastAction.message) {
-    setShownId(lastAction.id)
-    setActionMsg(lastAction.message)
-  }
-  useEffect(() => {
-    if (!actionMsg) return
-    const t = setTimeout(() => setActionMsg(''), 3500)
-    return () => clearTimeout(t)
-  }, [actionMsg])
 
   const swap = useMutation(({ storage }, { id, handId, fuId }) => {
     const sh = storage.get('shed')
@@ -72,9 +87,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     if (ids.length === 0 || !ids.every((p) => sh.get(`ready:${p}`))) return
     sh.set('phase', 'play')
     storage.set('currentTurn', findStarter(storage, ids))
-    const la = storage.get('lastAction')
-    la.set('message', `${storage.get('currentTurn')} has the lowest card and starts`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+    announce(storage, `${storage.get('currentTurn')} has the lowest card and starts`)
   }, [])
 
   // Play one card OR several of the SAME rank at once. `keys` is an array of
@@ -93,7 +106,6 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     const fu = sh.get(`fu:${id}`) ?? []
     const fd = faceDown[id] ?? []
     const finishedList = sh.get('finished') ?? []
-    const la = storage.get('lastAction')
 
     let cards
     if (source === 'hand' || source === 'faceUp') {
@@ -118,8 +130,10 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
         const taken = [...pile, card]
         while (discardList.length > 0) discardList.delete(0)
         handsObj.set(id, [...(handsObj.get(id) ?? []), ...taken])
-        la.set('message', `🙈 ${id} flipped ${card.label} — couldn't play, picked up ${taken.length}`)
-        la.set('id', (la.get('id') ?? 0) + 1)
+        announce(storage, `🙈 ${id} flipped ${card.label} — couldn't play, picked up ${taken.length}`, [
+          { kind: 'slam', tone: 'purple', emoji: '🙈', title: 'OOPS!', cards: [card], burst: false, sound: 'sad', who: id, sub: `${id}'s blind card can't go — picks up ${taken.length}`, subMe: `Can't play that — you pick up ${taken.length}` },
+          { kind: 'fly', from: '@pile', to: id, count: taken.length, sound: null },
+        ])
         advanceTurnWhile(storage, id, (p) => finishedList.includes(p))
         return
       }
@@ -138,24 +152,30 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     const after = readPile(storage)
     const burned = r === '10' || topRankRun(after) >= 4
     const label = cards.length > 1 ? `${cards.length}× ${r}` : cards[0].label
-    if (burned) {
-      const count = discardList.length
-      while (discardList.length > 0) discardList.delete(0)
-      sh.set('burned', (sh.get('burned') ?? 0) + count)
-      // Every phone watches this to play the fire animation 🔥
-      sh.set('lastBurn', { at: Date.now(), by: id, count, why: r === '10' ? 'ten' : 'four', cards: after.slice(-4) })
-      la.set('message', `🔥 ${id} played ${label} — pile burned, go again!`)
-    } else {
-      la.set('message', `${id} played ${label}`)
-    }
-    la.set('id', (la.get('id') ?? 0) + 1)
-
     const handLeft = (handsObj.get(id) ?? []).length
     const fuLeft = (sh.get(`fu:${id}`) ?? []).length
     const fdLeft = (sh.get('faceDown')[id] ?? []).length
     const done = handLeft === 0 && fuLeft === 0 && fdLeft === 0
     if (done && !finishedList.includes(id)) {
       sh.set('finished', [...finishedList, id])
+    }
+
+    // Little effects for the magic cards; a big one for getting out.
+    const fx = []
+    if (!burned && r === '2') fx.push({ kind: 'bubble', at: '@pile', text: '🔄 Reset!' })
+    if (!burned && r === '7') fx.push({ kind: 'bubble', at: '@pile', text: '⬇️ 7 or lower!' })
+    if (!burned && r === '3') fx.push({ kind: 'bubble', at: '@pile', text: '👻 Invisible!' })
+    if (done) fx.push({ kind: 'slam', tone: 'green', emoji: '🎉', title: "I'M OUT!", confetti: true, sound: 'fanfare', who: id, sub: `${id} has no cards left — safe!`, subMe: "You're safe! 🎉" })
+
+    if (burned) {
+      const count = discardList.length
+      while (discardList.length > 0) discardList.delete(0)
+      sh.set('burned', (sh.get('burned') ?? 0) + count)
+      // Every phone watches this to play the fire animation 🔥
+      sh.set('lastBurn', { at: Date.now(), by: id, count, why: r === '10' ? 'ten' : 'four', cards: after.slice(-4) })
+      announce(storage, `🔥 ${id} played ${label} — pile burned, go again!`, fx.length ? fx : null)
+    } else {
+      announce(storage, `${id} played ${label}`, fx.length ? fx : null)
     }
     const finishedNow = sh.get('finished') ?? []
     if (burned && !finishedNow.includes(id)) {
@@ -166,19 +186,24 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   }, [myId])
 
   const pickUp = useMutation(({ storage }, { id }) => {
+    if (storage.get('shed').get('phase') !== 'play') return
+    if (storage.get('currentTurn') !== id) return
+    doPickUp(storage, id)
+  }, [])
+
+  // ⏭ Nothing in your hand (or face-up cards) can beat the pile? Then you have
+  // to pick it up — so after a short countdown it happens by itself.
+  const autoPickUp = useMutation(({ storage }, id) => {
     const sh = storage.get('shed')
     if (sh.get('phase') !== 'play') return
     if (storage.get('currentTurn') !== id) return
-    const discardList = storage.get('discardPile')
+    const hand = storage.get('hands').get(id) ?? []
+    const fu = sh.get(`fu:${id}`) ?? []
+    const layer = layerOf(hand, fu)
+    if (layer === 'faceDown') return // blind cards are always a gamble — you flip one
     const pile = readPile(storage)
-    if (pile.length === 0) return
-    const handsObj = storage.get('hands')
-    while (discardList.length > 0) discardList.delete(0)
-    handsObj.set(id, [...(handsObj.get(id) ?? []), ...pile])
-    const la = storage.get('lastAction')
-    la.set('message', `😤 ${id} picked up ${pile.length} cards`)
-    la.set('id', (la.get('id') ?? 0) + 1)
-    advanceTurnWhile(storage, id, (p) => (sh.get('finished') ?? []).includes(p))
+    if (pile.length === 0 || canPlayAny(layer === 'hand' ? hand : fu, effectiveTop(pile))) return
+    doPickUp(storage, id, "couldn't beat the pile and ")
   }, [])
 
   const isReady = (p) => !!(shed && shed[`ready:${p}`])
@@ -190,6 +215,17 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   useEffect(() => {
     if (shed?.phase === 'swap' && everyoneReady && iStartPlay) startPlay()
   }, [shed?.phase, everyoneReady, iStartPlay, startPlay])
+
+  // Is the current player stuck (nothing can beat the pile)? Every phone can
+  // tell, because everyone's cards are in shared storage.
+  const turnHand = hands?.[currentTurn] ?? []
+  const turnFaceUp = shed?.[`fu:${currentTurn}`] ?? []
+  const turnLayer = layerOf(turnHand, turnFaceUp)
+  const pileTop = effectiveTop(discard)
+  const turnIsStuck = shed?.phase === 'play' && discard.length > 0 && turnLayer !== 'faceDown' &&
+    !(shed.finished ?? []).includes(currentTurn) &&
+    !canPlayAny(turnLayer === 'hand' ? turnHand : turnFaceUp, pileTop)
+  useAutoPass({ myId, currentTurn, order: playerOrder, stuck: turnIsStuck, act: autoPickUp, watch: lastActionId })
 
   if (!shed || !hands || !shed.phase) {
     return <div className="lobby"><p className="lobby-sub">Dealing the cards…</p></div>
@@ -210,10 +246,11 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     return (
       <div className="game-board">
         <TopBar roomCode={roomCode} onLeave={onLeave} />
-        <div className="turn-banner their-turn">🔀 Swap cards, then ready up</div>
+        <TurnBanner isMyTurn={!iAmReady} text={iAmReady ? '⏳ Waiting for everyone to be ready…' : '🔀 Swap cards, then ready up'} />
         <ActionMessage message={actionMsg} />
         <div className="table-center">
-          <p className="ask-label">Your face-up cards (swap your best cards up here)</p>
+          <div className="ask-step">Your face-up cards</div>
+          <p className="ask-hint">Swap your best cards up here — you'll play them later</p>
           <div className="shed-stack-row">
             {myFaceUp.map((c) => (
               <CardFace
@@ -225,7 +262,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
               />
             ))}
           </div>
-          {!iAmReady && <p className="ask-empty-msg">{selectedHandId == null ? 'Tap a hand card, then a face-up card to swap them.' : 'Now tap a face-up card to swap.'}</p>}
+          {!iAmReady && <p className="ask-empty-msg">{selectedHandId == null ? '👇 Tap a card in your hand, then one of these to swap' : '👆 Now tap a face-up card to swap'}</p>}
           <div className="action-buttons">
             {iAmReady
               ? <p className="ask-empty-msg">Ready! Waiting for {others.filter((p) => !isReady(p)).join(', ') || 'others'}…</p>
@@ -256,7 +293,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
       name: p,
       detail: idx < finished.length ? `#${idx + 1} — out` : '💩 Shithead!',
     }))
-    return <WinnerScreen emoji="💩" title={notFinished[0] ? `${notFinished[0]} is the Shithead!` : 'Game over!'} scores={scores} onLeave={onLeave} />
+    return <WinnerScreen emoji="💩" rain="💩" title={notFinished[0] ? `${notFinished[0]} is the Shithead!` : 'Game over!'} scores={scores} onLeave={onLeave} />
   }
 
   // Which layer am I playing from, and can I beat the pile?
@@ -313,7 +350,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
             {deckCount > 0 ? <CardBack className="draw-pile-card" /> : <div className="empty-pile discard-empty">Empty</div>}
             <span className="pile-label">Draw · {deckCount}</span>
           </div>
-          <div className="pile-col">
+          <div className="pile-col" data-spot="pile">
             {!top ? (
               <div className="empty-pile discard-empty">Pile</div>
             ) : isGlass(top) ? (
@@ -322,7 +359,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
                 <CardFace label={top.label} red={top.red} glass />
               </div>
             ) : (
-              <CardFace label={top.label} red={top.red} />
+              <div key={top.id} className="card-land"><CardFace label={top.label} red={top.red} /></div>
             )}
             <span className="pile-label">Pile{discard.length > 0 ? ` · ${discard.length}` : ''}</span>
           </div>
@@ -342,13 +379,12 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
                 Play {validSelected.length > 1 ? `${validSelected.length}× ${selectedRank}` : selectedRank} ▶
               </button>
             )}
-            {discard.length > 0 && (
-              !canBeat && myLayer !== 'faceDown'
-                ? <button className="big-btn pass-btn" onClick={() => pickUp({ id: myId })}>Can't play — pick up pile</button>
-                : <button className="action-btn sort-btn" onClick={() => pickUp({ id: myId })}>Pick up pile</button>
+            {discard.length > 0 && canBeat && (
+              <button className="action-btn sort-btn" onClick={() => pickUp({ id: myId })}>Pick up pile</button>
             )}
           </div>
         )}
+        {turnIsStuck && <AutoPassNotice who={currentTurn} myId={myId} reason="can't beat the pile" action="picking it up" />}
 
         {/* My face-down (blind) and face-up cards */}
         <div className="shed-mine">
@@ -386,7 +422,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
         isPicked={(card) => validSelected.includes(card.id)}
         isGlass={isGlass}
         showSort
-        hint={isMyTurn && myLayer === 'hand' ? (canBeat ? 'Tap matching cards, then Play ▶' : 'Nothing to play — pick up the pile') : undefined}
+        hint={isMyTurn && myLayer === 'hand' && canBeat ? 'Tap matching cards, then Play ▶' : undefined}
       />
     </div>
   )

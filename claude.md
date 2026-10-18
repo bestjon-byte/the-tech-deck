@@ -32,13 +32,18 @@ src/
     cards.js            ← SUITS/VALUES, buildShuffledDeck, sortCards, rankOf/suitOf
     identity.js         ← localStorage name + last room, makeRoomCode
     keepAwake.js        ← useKeepAwake(): screen wake lock in lobby + games
+    sfx.js              ← playSfx('snap') — synthesised sounds (Web Audio, no files) + mute (top bar 🔊)
+    looks.js            ← rand(i) (stable "random"), hueOf(name, seat) seat colours
   engine/
     turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder
     table.js            ← useCardTable (draw/play/undo/shuffle), dealToPlayers, dealAll, resetTable
     inCharge.js         ← useInCharge(): which ONE phone does an automatic move (see Multiplayer rules)
     bots.js             ← 🤖 computer players: useBots, useBotTurn (one human phone moves for the bots), BOT_LEVELS
-  components/           ← CardFace, CardBack, Hand, Opponent (+OpponentBacks), TopBar, TurnBanner,
-                          ActionMessage, WinnerScreen, HowToPlay, BurnFX, ConnectionBanner, ErrorBoundary, GameContext
+    announce.js         ← announce(storage, message, fx) — the toast + special effect for a move; useActionMessage()
+    autoPass.js         ← useAutoPass(): when the current player has no legal move, one phone passes for them after 2.2s
+  components/           ← CardFace, CardBack, Hand, Opponent (+CardFan, OpponentBacks), TopBar, TurnBanner,
+                          ActionMessage, WinnerScreen, HowToPlay, BurnFX, FXLayer, AutoPassNotice,
+                          ConnectionBanner, ErrorBoundary, GameContext
   screens/              ← NameScreen, LandingScreen (shows version tag), Lobby
   games/
     registry.js         ← THE GAME LIBRARY — one entry per game (lobby + router + rules read it)
@@ -78,7 +83,8 @@ Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, 
    }
    ```
 4. Want computer players? Add `bots: { max: 4 }` to the registry entry, write a brain in `games/ai/`, and in the board call `useBotTurn({ myId, currentTurn, playerOrder, act, active, watch })` with `act` = a `useMutation` that re-checks the turn and plays for the bot (see `BigTwoBoard`). Lobby "Add a computer player" buttons + Play Again pick it up.
-5. Needs its own shared state? Add a `LiveObject` slot to `initialStorage` in `App.jsx` (like `whist`, `shed`, `bigTwo`).
+5. Moves should call `announce(storage, 'Sam played 8♥', fx)` (never set `lastAction` by hand). For bling, pass an `fx` (see below). If a player can be stuck with no legal move, add `useAutoPass` + `<AutoPassNotice>` (see Sevens).
+6. Needs its own shared state? Add a `LiveObject` slot to `initialStorage` in `App.jsx` (like `whist`, `shed`, `bigTwo`).
 
 The lobby button, deal picker, game screen, help pop-up and Play Again all pick it up automatically.
 
@@ -91,6 +97,20 @@ Liveblocks resolves clashes by **last write wins, per key**. Two phones changing
 5. Prefer **per-player keys** for things everyone does at once (Shithead's `fu:Name`, `ready:Name`).
 6. Known remaining race: Free Play — two players tapping the draw pile at the same instant can both get the same card (deck is a `LiveList`, hands are whole arrays). A proper fix is a "one saved spot per card" model; a prototype exists on local branch `stale-tidy-rewrite` (built on an old version, don't merge — reuse the idea).
 
+## ✨ Special effects (FXLayer)
+`announce(storage, message, fx)` stores the effect in `lastAction.fx` (with a unique key); `FXLayer` (mounted once in `GameHost`) plays each new one on every phone, never blocks taps, and skips effects that were already there when the screen opened. `fx` is one effect or a list:
+- `{ kind: 'slam', title, sub, emoji, red, tone, cards, confetti, shake, big, sound, who, titleMe, subMe }` — big title; `who` + `subMe` give that player their own wording. Tones: gold red green blue purple brown fire electric snap rainbow
+- `{ kind: 'fly', from, to, count | cards }` — cards fly between seats; `from`/`to` = a player name or `'@pile'`/`'@deck'`/`'@pond'` (elements with `data-spot`)
+- `{ kind: 'bubble', at, text }` — speech bubble over a seat
+- `{ kind: 'ask', … }` — Go Fish's question/answer show
+- add `to: 'Name'` to make an effect private (Old Maid's 😱 Queen)
+Opponent seats have `data-seat={name}` so effects can find them. Snap triggers its SNAP! locally (`FXShow`) the instant `snap.winner` is set, without waiting for the award. Sounds: `playSfx(name)` in `lib/sfx.js`.
+
+## Layout notes
+- `.hand` is `position: sticky; bottom: 0` (not fixed) and `.game-board` uses `overflow: clip`, so the table can never slide under your hand.
+- `ActionMessage` always keeps its slot, so messages don't make the table jump.
+- `@media (max-height: 720px)` squeezes things for iPhone SE/mini.
+
 ## Liveblocks Shared State (storage)
 Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 - `deck` — `LiveList` of cards `{ id, label, red }` (**use `id` as React key, never `label`**)
@@ -98,7 +118,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 - `hands` — `LiveObject`: player name → array of cards
 - `gameStarted` (bool), `gameMode` (registry id), `lastDealCount` (for Play Again)
 - `currentTurn` (name), `playerOrder` (`LiveList` of names)
-- `lastAction` — `LiveObject { message, id }`: the "what just happened" toast
+- `lastAction` — `LiveObject { message, id, fx }`: the "what just happened" toast + its special effect (write it with `announce()`)
 - `bots` — `LiveObject`: bot name → `'easy' | 'medium' | 'hard'` (host adds/removes in the lobby; only games with `bots` in the registry use them; older rooms may lack it — guard)
 - `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ winner }`, `whist`, `shed`, `bigTwo` (per-game `LiveObject`s)
 

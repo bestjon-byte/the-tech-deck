@@ -34,3 +34,15 @@
 - [ ] Mystery: twice a game started with everyone's cards gone and the turn stuck (saved data had currentTurn + gameMode but empty hands + playerOrder). Can't make it happen on purpose yet — if you see it, note the game + what you tapped!
 - [ ] Free Play: two people tapping the draw pile at the exact same moment can both get the same card
 - [x] Bad signal: "No signal" / "Sending…" banner, moves sent 6× sooner, 🟢/📵 dot for who's online, screen stays awake in games
+
+## ✨ UI glow-up (Oct 2026)
+- [x] Auto-pass when you have no legal moves (Sevens pass, Big Two pass, Crazy Eights auto-draw, Shithead auto pick-up, Go Fish empty hand) — with a "😶 can't play — passing…" countdown everyone can see
+- [x] Go Fish: everyone SEES each ask — "Joshua asks Dad: Got any 7s?" bubble, then YES! (cards fly across) or GO FISH! (fish swim past). Books get confetti 📚. Tap a seat to choose who to ask
+- [x] Snap: giant red buzzer, tap your stack to flip, the middle shows the top cards so you can SEE the match, comic-book SNAP! on every phone, MIS-SNAP! penalty show
+- [x] Special effects everywhere: Crazy 8 suit spin + "LAST CARD!", Old Maid secret 😱 "Uh oh… a Queen!", Whist ⚡ TRUMPED! + 👑 trick winner + KNOCKED OUT 🥊, Shithead OOPS/PICK UP/I'M OUT, Big Two FULL HOUSE!/BIG TWO!, Sevens ROW COMPLETE
+- [x] Sounds 🔊 (made by the phone, no downloads) with a mute button in the top bar
+- [x] Opponents sit in a row of coloured "seats" — the seat GLOWS when it's their turn
+- [x] Winner screen: confetti, spinning rays, fanfare (💩 rains on the Shithead loser!)
+- [x] Layout fixes: hand can't cover the table any more, messages don't make the table jump, Sevens rows full width, Old Maid cards fit, small iPhones (SE) fit, Leave needs two taps
+- [ ] Playtest the effects at the table — too much? too little? which sound is annoying? 😄
+

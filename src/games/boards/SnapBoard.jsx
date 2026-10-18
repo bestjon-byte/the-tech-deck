@@ -1,15 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { rankOf } from '../../lib/cards'
+import { playSfx } from '../../lib/sfx'
 import { useTurns, advanceTurnWhile, readPlayerOrder } from '../../engine/turns'
+import { announce, useActionMessage } from '../../engine/announce'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
 import CardFace from '../../components/CardFace'
 import CardBack from '../../components/CardBack'
 import WinnerScreen from '../../components/WinnerScreen'
+import { FXShow } from '../../components/FXLayer'
+import { rand } from '../../lib/looks'
 import { Opponent } from '../../components/Opponent'
 import { useInCharge } from '../../engine/inCharge'
+
+// A card's own little tilt on the pile — the same on every phone.
+function tiltOf(card) {
+  let h = 0
+  for (const ch of String(card.id)) h = (h * 31 + ch.charCodeAt(0)) % 997
+  return (rand(h) - 0.5) * 24
+}
 
 // ── Snap ───────────────────────────────────────────────────
 // Your cards stay face down. On your turn you flip your top card onto the
@@ -19,31 +30,36 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
   const myId = playerName
   const hands = useStorage((root) => root.hands)
   const centre = useStorage((root) => root.discardPile)
-  const lastAction = useStorage((root) => root.lastAction ?? { message: '', id: 0 })
   const snapWinner = useStorage((root) => root.snap?.winner ?? '')
+  const actionMsg = useActionMessage(3000)
 
   const { currentTurn, playerOrder, isMyTurn, otherPlayers } = useTurns(myId)
 
-  const [actionMsg, setActionMsg] = useState('')
-  const [shownId, setShownId] = useState(0)
   // Brief cool-off after a mis-snap so a single panic-mash can't drain your whole
   // stack 5 cards at a time — you eat one penalty, then the button locks for a beat.
   const [penaltyLock, setPenaltyLock] = useState(false)
-  if (lastAction && lastAction.id !== shownId && lastAction.message) {
-    setShownId(lastAction.id)
-    setActionMsg(lastAction.message)
-  }
-  useEffect(() => {
-    if (!actionMsg) return
-    const t = setTimeout(() => setActionMsg(''), 3000)
-    return () => clearTimeout(t)
-  }, [actionMsg])
-
   useEffect(() => {
     if (!penaltyLock) return
     const t = setTimeout(() => setPenaltyLock(false), 1200)
     return () => clearTimeout(t)
   }, [penaltyLock])
+
+  // 👏 The SNAP! show plays the instant anyone's claim lands — on every phone.
+  const [seenWinner, setSeenWinner] = useState(snapWinner)
+  const [snapShow, setSnapShow] = useState(null)
+  if (snapWinner !== seenWinner) {
+    setSeenWinner(snapWinner)
+    if (snapWinner) setSnapShow((prev) => ({ n: (prev?.n ?? 0) + 1, winner: snapWinner, count: centre?.length ?? 0 }))
+  }
+  useEffect(() => {
+    if (!snapShow) return
+    const t = setTimeout(() => setSnapShow(null), 2500)
+    return () => clearTimeout(t)
+  }, [snapShow])
+
+  // A little "thwip" every time a new card lands in the middle.
+  const topId = centre?.[0]?.id
+  useEffect(() => { if (topId != null) playSfx('pop') }, [topId])
 
   const myCount = (hands?.[myId] ?? []).length
   const topTwoMatch = centre && centre.length >= 2 && rankOf(centre[0]) === rankOf(centre[1])
@@ -51,6 +67,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
 
   const flipCard = useMutation(({ storage }, id) => {
     if (storage.get('snap').get('winner')) return // a snap is being resolved
+    if (storage.get('currentTurn') !== id) return
     const handsObj = storage.get('hands')
     const myStack = handsObj.get(id) ?? []
     if (myStack.length === 0) return
@@ -68,9 +85,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
       const pile = []
       while (centreList.length > 0) { pile.push(centreList.get(0)); centreList.delete(0) }
       handsObj.set(id, pile)
-      const la = storage.get('lastAction')
-      la.set('message', `${id} flipped the last card with no snap — and keeps the pile! 🏆`)
-      la.set('id', (la.get('id') ?? 0) + 1)
+      announce(storage, `${id} flipped the last card with no snap — and keeps the pile! 🏆`)
       return
     }
 
@@ -105,9 +120,13 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     const penalty = myStack.slice(0, n)
     handsObj.set(id, myStack.slice(n))
     penalty.forEach((card) => centreList.push(card)) // push = onto the bottom of the pile
-    const la = storage.get('lastAction')
-    la.set('message', `❌ ${id} mis-snapped — lost ${n} card${n === 1 ? '' : 's'}!`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+    announce(storage, `❌ ${id} mis-snapped — lost ${n} card${n === 1 ? '' : 's'}!`, [
+      {
+        kind: 'slam', tone: 'red', emoji: '❌', title: 'MIS-SNAP!', burst: false, shake: true, sound: 'buzz',
+        who: id, sub: `${id} loses ${n} card${n === 1 ? '' : 's'}`, subMe: `Oops! You lose ${n} card${n === 1 ? '' : 's'}`,
+      },
+      { kind: 'fly', from: id, to: '@pile', count: n },
+    ])
   }, [])
 
   // A moment later, the pile is handed to whoever the claim settled on. This
@@ -124,9 +143,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     while (centreList.length > 0) { won.push(centreList.get(0)); centreList.delete(0) }
     handsObj.set(winner, [...(handsObj.get(winner) ?? []), ...won])
 
-    const la = storage.get('lastAction')
-    la.set('message', `SNAP! ${winner} grabbed ${won.length} cards 👏`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+    announce(storage, `SNAP! ${winner} grabbed ${won.length} cards 👏`)
     snap.set('winner', '')
 
     const ct = storage.get('currentTurn')
@@ -156,7 +173,18 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     return <WinnerScreen emoji="👏" title={`${stillIn[0]} wins Snap!`} onLeave={onLeave} />
   }
 
-  const topCard = centre?.[0] ?? null
+  const shown = (centre ?? []).slice(0, 3).reverse() // top card drawn last (on top)
+  const canFlip = isMyTurn && myCount > 0 && !claimPending
+
+  function hitSnap() {
+    if (claimPending || penaltyLock) return
+    if (topTwoMatch) {
+      claimSnap(myId)
+    } else {
+      wrongSnap(myId)
+      setPenaltyLock(true)
+    }
+  }
 
   return (
     <div className="game-board">
@@ -168,48 +196,59 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
         <div className="opponents">
           {otherPlayers.map((p) => (
             <Opponent key={p} name={p} sub={`${(hands[p] ?? []).length} cards`}>
-              <CardBack />
+              {(hands[p] ?? []).length > 0 && <div className="opponent-cards"><CardBack /></div>}
             </Opponent>
           ))}
         </div>
       </div>
 
       <div className="table-center">
-        <div className="snap-centre">
-          {topCard ? <CardFace label={topCard.label} red={topCard.red} /> : <div className="empty-pile">Middle</div>}
-          <span className="pile-label">Middle{centre.length > 0 ? ` · ${centre.length}` : ''}</span>
+        <div className={`snap-pile${topTwoMatch && !claimPending ? ' match' : ''}`} data-spot="pile">
+          {shown.length === 0 && <div className="empty-pile discard-empty">Flip to start</div>}
+          {shown.map((c, i) => (
+            <div
+              key={c.id}
+              className={`snap-pile-card${i === shown.length - 1 ? ' top' : ''}`}
+              style={{ '--tilt': `${tiltOf(c)}deg`, '--depth': shown.length - 1 - i }}
+            >
+              <CardFace label={c.label} red={c.red} />
+            </div>
+          ))}
         </div>
+        <span className="pile-label">Middle{centre.length > 0 ? ` · ${centre.length}` : ''}</span>
+        {topTwoMatch && !claimPending && <div className="snap-alert">IT'S A MATCH!</div>}
+      </div>
 
-        <div className="action-buttons">
-          {isMyTurn && myCount > 0 && !claimPending && (
-            <button className="big-btn flip-btn" onClick={() => flipCard(myId)}>Flip a card 🃏</button>
-          )}
-          {/* Anyone can snap — even a knocked-out player can fight back in.
-              A real match claims the pile; a wrong call costs you 5 cards. */}
-          <button
-            className={`big-btn snap-btn ${topTwoMatch && !claimPending ? 'armed' : ''}`}
-            onClick={() => {
-              if (claimPending || penaltyLock) return
-              if (topTwoMatch) {
-                claimSnap(myId)
-              } else {
-                wrongSnap(myId)
-                setPenaltyLock(true)
-              }
+      <div className="hand snap-dock">
+        <button className={`snap-stack${canFlip ? ' ready' : ''}`} onClick={() => canFlip && flipCard(myId)} disabled={!canFlip}>
+          {myCount > 0 ? <CardBack className="draw-pile-card" /> : <div className="empty-pile discard-empty">Out</div>}
+          <span className="pile-label">{canFlip ? `👆 Tap to flip · ${myCount}` : `Your stack · ${myCount}`}</span>
+        </button>
+
+        {/* Anyone can snap — even a knocked-out player can fight back in.
+            A real match claims the pile; a wrong call costs you 5 cards. */}
+        <button
+          className={`snap-buzzer${topTwoMatch && !claimPending ? ' armed' : ''}`}
+          onClick={hitSnap}
+          disabled={claimPending || penaltyLock}
+        >
+          <span>{penaltyLock ? '⏳' : 'SNAP!'}</span>
+        </button>
+      </div>
+
+      {snapShow && (
+        <div key={snapShow.n}>
+          {/* the cards fly underneath the big title */}
+          <FXShow myId={myId} spec={{ kind: 'fly', from: '@pile', to: snapShow.winner, count: snapShow.count, sound: null }} />
+          <FXShow
+            myId={myId}
+            spec={{
+              kind: 'slam', tone: 'snap', title: 'SNAP!', big: true, shake: true, sound: 'snap',
+              who: snapShow.winner, sub: `${snapShow.winner} got it! +${snapShow.count}`, subMe: `YOU GOT IT! +${snapShow.count} 🙌`,
             }}
-            disabled={claimPending || penaltyLock}
-          >
-            SNAP!
-          </button>
+          />
         </div>
-      </div>
-
-      <div className="hand">
-        <div className="my-stack">
-          {myCount > 0 ? <CardBack className="draw-pile-card" /> : <div className="empty-pile">Out</div>}
-          <span className="pile-label">Your stack · {myCount}</span>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

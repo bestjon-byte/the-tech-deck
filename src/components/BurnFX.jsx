@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import CardFace from './CardFace'
+import { playSfx } from '../lib/sfx'
+import { rand } from '../lib/looks'
 
 // 🔥 The big fire show when Shithead's pile burns.
 // `burn` comes from shared storage ({ at, by, count, why, cards }), so EVERY
@@ -7,11 +9,6 @@ import CardFace from './CardFace'
 // already happened before this screen opened (e.g. rejoining) is skipped.
 const FX_MS = 2800
 
-// Same "random" numbers every render, so particles don't jump about.
-const rand = (i) => {
-  const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453
-  return x - Math.floor(x)
-}
 
 const FLAMES = Array.from({ length: 16 }, (_, i) => ({
   left: (i / 15) * 100,
@@ -45,6 +42,7 @@ export default function BurnFX({ burn }) {
     if (!active) return
     document.body.classList.add('burn-shake')
     navigator.vibrate?.([60, 40, 120]) // buzz on phones that support it
+    playSfx('burn')
     const t = setTimeout(() => setActive(null), FX_MS)
     return () => {
       clearTimeout(t)

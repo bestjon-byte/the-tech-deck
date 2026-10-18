@@ -1,6 +1,7 @@
 import { rankOf, buildShuffledDeck } from '../../lib/cards'
 import { dealAll } from '../../engine/table'
 import { beginTurns } from '../../engine/turns'
+import { clearAnnouncements } from '../../engine/announce'
 
 // Set up Old Maid: remove one Queen (so it can never be paired — that's the
 // "Old Maid"), deal the rest out, then everyone throws away the pairs they were
@@ -13,9 +14,7 @@ export function setupOldMaid({ storage, playerIds }) {
     hands.set(pid, extractPairs(hands.get(pid) ?? []).newHand)
   }
   beginTurns(storage, playerIds)
-  const la = storage.get('lastAction')
-  la.set('message', '')
-  la.set('id', 0)
+  clearAnnouncements(storage)
 }
 
 // ── Old Maid rule: throw away pairs ────────────────────────

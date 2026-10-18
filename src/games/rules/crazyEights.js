@@ -1,6 +1,7 @@
 import { rankOf, suitOf } from '../../lib/cards'
 import { dealToPlayers } from '../../engine/table'
 import { beginTurns } from '../../engine/turns'
+import { clearAnnouncements } from '../../engine/announce'
 
 // Set up Crazy Eights: deal hands, flip one starter card onto the discard pile,
 // start turns, and clear the chosen-suit + message state.
@@ -15,9 +16,7 @@ export function setupCrazyEights({ storage, playerIds, count }) {
     discard.insert(starter, 0)
   }
   storage.set('declaredSuit', '')
-  const la = storage.get('lastAction')
-  la.set('message', '')
-  la.set('id', 0)
+  clearAnnouncements(storage)
 }
 
 // ── Crazy Eights rule: can this card be played? ────────────

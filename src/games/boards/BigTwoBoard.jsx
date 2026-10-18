@@ -1,16 +1,44 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { advanceTurnWhile, readPlayerOrder } from '../../engine/turns'
+import { announce, useActionMessage } from '../../engine/announce'
+import { useAutoPass } from '../../engine/autoPass'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
+import AutoPassNotice from '../../components/AutoPassNotice'
 import CardFace from '../../components/CardFace'
 import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
-import { Opponent } from '../../components/Opponent'
+import { Opponent, CardFan } from '../../components/Opponent'
 import { useBotTurn, useBots } from '../../engine/bots'
 import { chooseBigTwoMove } from '../ai/bigTwoBot'
 import { identifyCombo, isLegalPlay, describeCombo, sortForBigTwo, legalPlays, selectableCardIds, highlightHintIds } from '../rules/bigTwo'
+import { rankOf } from '../../lib/cards'
+
+// The big plays get a big moment.
+const COMBO_SLAM = {
+  straight: { title: 'STRAIGHT!', emoji: '📏', tone: 'blue' },
+  flush: { title: 'FLUSH!', emoji: '🌊', tone: 'blue' },
+  fullhouse: { title: 'FULL HOUSE!', emoji: '🏠', tone: 'gold' },
+  quad: { title: 'FOUR OF A KIND!', emoji: '💣', tone: 'fire', shake: true },
+  straightflush: { title: 'STRAIGHT FLUSH!!!', emoji: '💣💣', tone: 'rainbow', shake: true, big: true },
+}
+
+function playFx(id, combo, cards, cardsLeft, place) {
+  const fx = []
+  const look = COMBO_SLAM[combo.type]
+  const allTwos = cards.every((c) => rankOf(c) === '2')
+  if (look) fx.push({ kind: 'slam', ...look, cards, who: id, sub: `${id} played it!`, subMe: 'Boom! 💥', sound: look.shake ? 'zap' : 'slam' })
+  else if (allTwos && cards.length === 1) fx.push({ kind: 'slam', tone: 'fire', title: 'BIG TWO!', emoji: '2️⃣', cards, who: id, sub: `${id} played a 2!`, subMe: 'Top card! 🔥' })
+  else if (allTwos) fx.push({ kind: 'slam', tone: 'fire', title: 'DOUBLE TWOS!', emoji: '😱', cards, shake: true, who: id, sub: `${id} played ${cards.length} twos!` })
+  if (cardsLeft === 0) {
+    fx.push({ kind: 'slam', tone: 'green', emoji: place === 1 ? '🏆' : '🎉', title: place === 1 ? 'WINNER!' : "I'M OUT!", confetti: true, sound: 'fanfare', who: id, sub: `${id} finished #${place}`, subMe: `You finished #${place}!` })
+  } else if (cardsLeft === 1) {
+    fx.push({ kind: 'bubble', at: id, text: '☝️ Last card!' })
+  }
+  return fx.length ? fx : null
+}
 
 // Play cards / pass — plain functions so a human tap and a bot's move follow
 // exactly the same rules. Both refuse unless it's `id`'s turn.
@@ -38,11 +66,9 @@ function doPlay(storage, { id, cardIds }) {
   const finishedList = bt.get('finished') ?? []
   if (newHand.length === 0 && !finishedList.includes(id)) bt.set('finished', [...finishedList, id])
 
-  const la = storage.get('lastAction')
-  la.set('message', `${id} played ${describeCombo(combo, cards)}`)
-  la.set('id', (la.get('id') ?? 0) + 1)
-
   const finishedNow = bt.get('finished') ?? []
+  announce(storage, `${id} played ${describeCombo(combo, cards)}`, playFx(id, combo, cards, newHand.length, finishedNow.indexOf(id) + 1))
+
   advanceTurnWhile(storage, id, (p) => finishedNow.includes(p))
 }
 
@@ -56,16 +82,17 @@ function doPass(storage, { id }) {
   const activeOthers = order.filter((p) => p !== leader && !finished.includes(p)).length
   const newPassCount = (bt.get('passCount') ?? 0) + 1
 
-  const la = storage.get('lastAction')
-  la.set('message', `${id} passed`)
-  la.set('id', (la.get('id') ?? 0) + 1)
-
   if (newPassCount >= activeOthers) {
+    announce(storage, `${id} passed — ${leader} leads again`, [
+      { kind: 'bubble', at: id, text: '😶 Pass' },
+      { kind: 'bubble', at: leader, text: '👑 My lead!', sound: null },
+    ])
     bt.set('currentTrick', [])
     bt.set('trickType', null)
     bt.set('leader', '')
     bt.set('passCount', 0)
   } else {
+    announce(storage, `${id} passed`, { kind: 'bubble', at: id, text: '😶 Pass' })
     bt.set('passCount', newPassCount)
   }
   advanceTurnWhile(storage, id, (p) => finished.includes(p))
@@ -83,20 +110,9 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
   const bigTwo = useStorage((root) => root.bigTwo)
   const currentTurn = useStorage((root) => root.currentTurn ?? '')
   const playerOrder = useStorage((root) => root.playerOrder ?? [])
-  const lastAction = useStorage((root) => root.lastAction ?? { message: '', id: 0 })
-
-  const [actionMsg, setActionMsg] = useState('')
-  const [shownId, setShownId] = useState(0)
+  const lastActionId = useStorage((root) => root.lastAction?.id ?? 0)
+  const actionMsg = useActionMessage(3500)
   const [selected, setSelected] = useState([])
-  if (lastAction && lastAction.id !== shownId && lastAction.message) {
-    setShownId(lastAction.id)
-    setActionMsg(lastAction.message)
-  }
-  useEffect(() => {
-    if (!actionMsg) return
-    const t = setTimeout(() => setActionMsg(''), 3500)
-    return () => clearTimeout(t)
-  }, [actionMsg])
 
   const play = useMutation(({ storage }, args) => doPlay(storage, args), [])
   const pass = useMutation(({ storage }, args) => doPass(storage, args), [])
@@ -128,8 +144,26 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
     playerOrder,
     act: botMove,
     active: !!bigTwo?.finished && playerOrder.filter((p) => !finishedNow.includes(p)).length > 1,
-    watch: lastAction?.id,
+    watch: lastActionId,
   })
+
+  // ⏭ Can't beat what's on the table? Pass by itself after a countdown.
+  // (Bots decide for themselves, and you can never pass when leading.)
+  const autoPass = useMutation(({ storage }, id) => {
+    if (storage.get('currentTurn') !== id) return
+    const bt = storage.get('bigTwo')
+    const trick = bt.get('trickType')
+    if (!trick) return
+    if (legalPlays(storage.get('hands').get(id) ?? [], trick, bt.get('mustStartWith3D')).length > 0) return
+    doPass(storage, { id })
+  }, [])
+  const turnHand = hands?.[currentTurn]
+  const turnIsStuck = useMemo(() => {
+    if (!bigTwo?.trickType || !turnHand || bots[currentTurn]) return false
+    if ((bigTwo.finished ?? []).includes(currentTurn)) return false
+    return legalPlays(turnHand, bigTwo.trickType, bigTwo.mustStartWith3D).length === 0
+  }, [bigTwo, turnHand, bots, currentTurn])
+  useAutoPass({ myId, currentTurn, order: playerOrder, stuck: turnIsStuck, act: autoPass, watch: lastActionId })
 
   // Every legal move in my hand (searched once per change, not on every tap).
   const isMyTurnNow = currentTurn === myId
@@ -157,7 +191,7 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
       name: p,
       detail: idx < finished.length ? `#${idx + 1}` : `😖 ${(hands[p] ?? []).length} left`,
     }))
-    return <WinnerScreen emoji="🃏" title={`${finished[0]} wins Big Two!`} scores={scores} onLeave={onLeave} />
+    return <WinnerScreen emoji="2️⃣" title={`${finished[0]} wins Big Two!`} scores={scores} onLeave={onLeave} />
   }
 
   const selectedCards = myHand.filter((c) => selected.includes(c.id))
@@ -205,18 +239,20 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
               name={p}
               sub={finished.includes(p)
                 ? `finished — #${finished.indexOf(p) + 1} ✅`
-                : `${(hands[p] ?? []).length} cards${bots[p] && currentTurn === p ? ' · thinking…' : ''}`}
-            />
+                : `${(hands[p] ?? []).length} cards${bots[p] && currentTurn === p ? ' · 🤔' : ''}`}
+            >
+              <CardFan count={(hands[p] ?? []).length} />
+            </Opponent>
           ))}
         </div>
       </div>
 
       <div className="table-center">
-        <div className="whist-trick">
+        <div className="whist-trick" data-spot="pile">
           {currentTrick.length === 0
-            ? <span className="tableau-empty">{isMyTurn ? 'Your lead — play anything' : 'Table is clear…'}</span>
+            ? <span className="trick-empty">{isMyTurn ? '👑 Your lead — play anything' : `👑 ${currentTurn} leads…`}</span>
             : (
-              <div className="whist-play">
+              <div key={currentTrick.map((c) => c.id).join()} className="whist-play card-land">
                 <div className="shed-stack-row">
                   {currentTrick.map((c) => <CardFace key={c.id} label={c.label} red={c.red} />)}
                 </div>
@@ -225,7 +261,8 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
             )}
         </div>
 
-        {isMyTurn && !iAmFinished && (
+        {turnIsStuck && <AutoPassNotice who={currentTurn} myId={myId} reason="can't beat that" />}
+        {isMyTurn && !iAmFinished && !turnIsStuck && (
           <div className="action-buttons">
             {selectedCards.length > 0 && (
               <button className="big-btn create-btn" disabled={!legal} onClick={playSelected}>{playLabel}</button>

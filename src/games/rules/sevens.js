@@ -1,15 +1,14 @@
 import { SUITS, VALUES, rankOf, suitOf } from '../../lib/cards'
 import { dealAll } from '../../engine/table'
 import { beginTurns } from '../../engine/turns'
+import { clearAnnouncements } from '../../engine/announce'
 
 // Set up Sevens: deal the whole deck out and start turns. The table (the
 // discard pile) starts empty — someone has to play a 7 first.
 export function setupSevens({ storage, playerIds }) {
   dealAll(storage, playerIds)
   beginTurns(storage, playerIds)
-  const la = storage.get('lastAction')
-  la.set('message', '')
-  la.set('id', 0)
+  clearAnnouncements(storage)
 }
 
 const ORDER = Object.fromEntries(VALUES.map((v, i) => [v, i]))

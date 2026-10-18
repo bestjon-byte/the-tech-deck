@@ -43,7 +43,7 @@ export default function FreePlayBoard({ playerName, roomCode, onLeave }) {
           </div>
           <div className="pile-col">
             {discardTop ? (
-              <CardFace label={discardTop.label} red={discardTop.red} />
+              <div key={discardTop.id} className="card-land"><CardFace label={discardTop.label} red={discardTop.red} /></div>
             ) : (
               <div className="empty-pile discard-empty">Discard</div>
             )}

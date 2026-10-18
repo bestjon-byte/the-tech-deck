@@ -28,6 +28,7 @@
 
 import { dealToPlayers } from '../engine/table'
 import { beginTurns } from '../engine/turns'
+import { clearAnnouncements } from '../engine/announce'
 
 import FreePlayBoard from './boards/FreePlayBoard'
 import GoFishBoard from './boards/GoFishBoard'
@@ -78,9 +79,7 @@ export const GAMES = [
       beginTurns(storage, playerIds)
       const booksObj = storage.get('books')
       for (const pid of playerIds) booksObj.set(pid, [])
-      const la = storage.get('lastAction')
-      la.set('message', '')
-      la.set('id', 0)
+      clearAnnouncements(storage)
     },
     lobbyHint: (n) => `${n <= 2 ? 7 : 5} cards each · ask for matching ranks · first to collect all their sets wins`,
     rules: {

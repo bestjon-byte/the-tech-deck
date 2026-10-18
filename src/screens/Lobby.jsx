@@ -125,7 +125,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
         </div>
         {others.map((o) => (
           <div key={o.connectionId} className="player-item">
-            <span className="player-dot" />
+            <span className="player-dot on" />
             {o.presence.playerId || '...'}
           </div>
         ))}

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { suitOf } from '../../lib/cards'
+import { announce, useActionMessage } from '../../engine/announce'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -25,19 +26,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
   const hands = useStorage((root) => root.hands)
   const whist = useStorage((root) => root.whist)
   const currentTurn = useStorage((root) => root.currentTurn ?? '')
-  const lastAction = useStorage((root) => root.lastAction ?? { message: '', id: 0 })
-
-  const [actionMsg, setActionMsg] = useState('')
-  const [shownId, setShownId] = useState(0)
-  if (lastAction && lastAction.id !== shownId && lastAction.message) {
-    setShownId(lastAction.id)
-    setActionMsg(lastAction.message)
-  }
-  useEffect(() => {
-    if (!actionMsg) return
-    const t = setTimeout(() => setActionMsg(''), 3500)
-    return () => clearTimeout(t)
-  }, [actionMsg])
+  const actionMsg = useActionMessage(3500)
 
   const playCard = useMutation(({ storage }, { id, cardId }) => {
     const w = storage.get('whist')
@@ -57,9 +46,12 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     const lead = leadSuit || suitOf(card)
     if (!leadSuit) w.set('leadSuit', lead)
 
-    const la = storage.get('lastAction')
-    la.set('message', `${id} played ${card.label}`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+    // ⚡ Trumping a trick you couldn't follow gets the lightning treatment.
+    const trump = w.get('trump')
+    const trumped = leadSuit && leadSuit !== trump && suitOf(card) === trump
+    announce(storage, `${id} played ${card.label}${trumped ? ' — TRUMPED! ⚡' : ''}`, trumped
+      ? { kind: 'slam', tone: 'electric', title: 'TRUMPED!', emoji: '⚡', cards: [card], sound: 'zap', shake: true, who: id, sub: `${id} played a trump!`, subMe: 'You played a trump!' }
+      : null)
 
     const alive = w.get('alive') ?? []
     const skips = w.get('trickSkips') ?? []
@@ -95,9 +87,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     if (trick.length === 0 && otherActors.length === 0) return // nobody else to play — you must lay it down
     skips.push(id)
     w.set('trickSkips', skips)
-    const la = storage.get('lastAction')
-    la.set('message', `🐶 ${id} saved their card`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+    announce(storage, `🐶 ${id} saved their card`, { kind: 'bubble', at: id, text: '🐶 Saving it!' })
     const skipSet = new Set(skips)
     const complete = alive.every((p) => played.has(p) || (handsObj.get(p) ?? []).length === 0 || skipSet.has(p))
     if (complete) {
@@ -114,6 +104,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     const w = storage.get('whist')
     const winner = w.get('trickWinner')
     if (!winner) return
+    const trickSize = (w.get('trick') ?? []).length
     const tricksWon = { ...(w.get('tricksWon') ?? {}) }
     tricksWon[winner] = (tricksWon[winner] ?? 0) + 1
     w.set('tricksWon', tricksWon)
@@ -123,9 +114,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     w.set('trickSkips', [])
     w.set('leader', winner)
 
-    const la = storage.get('lastAction')
-    la.set('message', `🏅 ${winner} won the trick`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+    const wonTrick = { kind: 'fly', from: '@pile', to: winner, count: trickSize }
 
     // The round is over once every regular player is out of cards. A dog that
     // never committed its held card simply wins no trick and drops out — there's
@@ -134,7 +123,19 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     const alive = w.get('alive') ?? []
     const dogs = w.get('dogs') ?? []
     const roundOver = alive.every((p) => dogs.includes(p) || (handsObj.get(p) ?? []).length === 0)
-    if (roundOver) { endWhistRound(storage); return }
+    if (roundOver) {
+      endWhistRound(storage)
+      const stillAlive = w.get('alive') ?? []
+      const out = alive.filter((p) => !stillAlive.includes(p))
+      const newDogs = w.get('dogs') ?? []
+      let roundFx = null
+      if (w.get('phase') === 'gameOver') roundFx = null // the winner screen takes over
+      else if (out.length) roundFx = { kind: 'slam', tone: 'red', emoji: '🥊', title: 'KNOCKED OUT!', sub: out.join(' & '), sound: 'sad', shake: true, who: out.length === 1 ? out[0] : '', subMe: "That's you! 😭" }
+      else if (newDogs.length) roundFx = { kind: 'slam', tone: 'gold', emoji: '🐶', title: "DOG'S LIFE!", sub: `${newDogs.join(' & ')} clings on with one card`, sound: 'pop' }
+      announce(storage, `🏅 ${winner} won the trick. ${w.get('lastResult') ?? ''}`, roundFx ? [wonTrick, roundFx] : wonTrick)
+      return
+    }
+    announce(storage, `🏅 ${winner} won the trick`, wonTrick)
     const seating = w.get('seating') ?? []
     storage.set('currentTurn', nextLeaderAfter(seating, alive, winner, handsObj))
   }, [])
@@ -159,9 +160,10 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     while (order.length > 0) order.delete(0)
     seating.forEach((p) => order.push(p))
     storage.set('currentTurn', id)
-    const la = storage.get('lastAction')
-    la.set('message', `${id} chose ${suit} as trumps`)
-    la.set('id', (la.get('id') ?? 0) + 1)
+    announce(storage, `${id} chose ${suit} as trumps`, {
+      kind: 'slam', tone: 'gold', title: 'TRUMPS!', emoji: suit, red: isRed(suit), sound: 'zap',
+      who: id, sub: `${id} chose ${suit}`, subMe: `You chose ${suit}`,
+    })
   }, [])
 
   // The trick winner's phone clears the trick — or, if they're offline, the
@@ -252,18 +254,19 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
       </div>
 
       <div className="table-center">
-        <div className="whist-trump">
-          Trumps: <span className={isRed(trump) ? 'red' : ''}>{trump}</span>
-          <span className="whist-round"> · Round {round} · {tricksWon[myId] ?? 0} trick{(tricksWon[myId] ?? 0) === 1 ? '' : 's'} won</span>
+        <div className="whist-info">
+          <span className={`trump-badge${isRed(trump) ? ' red' : ''}`}>Trumps <b>{trump}</b></span>
+          <span className="whist-round">Round {round} · you've won {tricksWon[myId] ?? 0} trick{(tricksWon[myId] ?? 0) === 1 ? '' : 's'}</span>
         </div>
 
-        <div className="whist-trick">
+        <div className="whist-trick" data-spot="pile">
           {trick.length === 0
-            ? <span className="tableau-empty">{isMyTurn ? 'Lead a card' : 'Waiting for cards…'}</span>
+            ? <span className="trick-empty">{isMyTurn ? '👇 Lead any card' : 'Waiting for cards…'}</span>
             : trick.map((t) => (
-                <div key={t.player} className="whist-play">
-                  <CardFace label={t.label} red={t.red} />
-                  <span className="whist-play-name">{t.player}{suitOf(t) === trump ? ' ⚡' : ''}</span>
+                <div key={t.player} className={`whist-play${trickWinner === t.player ? ' winner' : ''}${trickWinner && trickWinner !== t.player ? ' loser' : ''}`}>
+                  {trickWinner === t.player && <span className="trick-crown">👑</span>}
+                  <div className="card-land"><CardFace label={t.label} red={t.red} /></div>
+                  <span className="whist-play-name">{t.player === myId ? 'You' : t.player}{suitOf(t) === trump ? ' ⚡' : ''}</span>
                 </div>
               ))}
         </div>

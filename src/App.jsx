@@ -10,6 +10,7 @@ import ConnectionBanner from './components/ConnectionBanner'
 import { useKeepAwake } from './lib/keepAwake'
 import { readBotNames } from './engine/bots'
 import HowToPlay from './components/HowToPlay'
+import FXLayer from './components/FXLayer'
 import NameScreen from './screens/NameScreen'
 import LandingScreen from './screens/LandingScreen'
 import Lobby from './screens/Lobby'
@@ -51,6 +52,7 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
   return (
     <GameContext.Provider value={{ game, isCreator, openHelp: () => setHelpOpen(true), playAgain, chooseGame }}>
       <Board playerName={playerName} roomCode={roomCode} onLeave={onLeave} />
+      <FXLayer myId={playerName} />
       <HowToPlay game={game} open={helpOpen} onClose={() => setHelpOpen(false)} />
     </GameContext.Provider>
   )
@@ -111,7 +113,7 @@ function App() {
           currentTurn: '',
           playerOrder: new LiveList([]),
           books: new LiveObject({}),
-          lastAction: new LiveObject({ message: '', id: 0 }),
+          lastAction: new LiveObject({ message: '', id: 0, fx: null }), // fx = the special effect everyone plays (FXLayer)
           declaredSuit: '',
           snap: new LiveObject({ winner: '' }),
           whist: new LiveObject({}),
