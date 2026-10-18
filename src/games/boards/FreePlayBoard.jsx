@@ -15,7 +15,7 @@ export default function FreePlayBoard({ playerName, roomCode, onLeave }) {
   const deck = useStorage((root) => root.deck)
   const discardPile = useStorage((root) => root.discardPile)
 
-  const { drawCard, playCard, undoPlay, shuffleDiscardIntoDeck, sortHand } = useCardTable()
+  const { drawCard, playCard, undoPlay, shuffleDiscardIntoDeck } = useCardTable()
 
   if (deck === null) {
     return <div className="lobby"><p className="lobby-sub">Setting up game...</p></div>
@@ -65,7 +65,6 @@ export default function FreePlayBoard({ playerName, roomCode, onLeave }) {
         cards={myHand}
         onCardClick={(card) => playCard({ id: myId, cardId: card.id })}
         showSort
-        onSort={() => sortHand(myId)}
       />
     </div>
   )

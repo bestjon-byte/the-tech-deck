@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { advanceTurnWhile } from '../../engine/turns'
-import { rankOf, sortCards } from '../../lib/cards'
+import { rankOf } from '../../lib/cards'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -74,11 +74,6 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     la.set('message', `${storage.get('currentTurn')} has the lowest card and starts`)
     la.set('id', (la.get('id') ?? 0) + 1)
   }, [])
-
-  const sortHand = useMutation(({ storage }) => {
-    const h = storage.get('hands')
-    h.set(myId, sortCards(h.get(myId) ?? []))
-  }, [myId])
 
   // Play one card OR several of the SAME rank at once. `keys` is an array of
   // card ids for hand/faceUp, or a single [index] for a blind face-down flip.
@@ -384,7 +379,6 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
         isPicked={(card) => validSelected.includes(card.id)}
         isGlass={isGlass}
         showSort
-        onSort={sortHand}
         hint={isMyTurn && myLayer === 'hand' ? (canBeat ? 'Tap matching cards, then Play ▶' : 'Nothing to play — pick up the pile') : undefined}
       />
     </div>

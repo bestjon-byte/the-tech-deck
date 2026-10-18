@@ -37,11 +37,6 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
     return () => clearTimeout(t)
   }, [actionMsg])
 
-  const sortHand = useMutation(({ storage }) => {
-    const h = storage.get('hands')
-    h.set(myId, sortForBigTwo(h.get(myId) ?? []))
-  }, [myId])
-
   const play = useMutation(({ storage }, { id, cardIds }) => {
     const bt = storage.get('bigTwo')
     if (storage.get('currentTurn') !== id) return
@@ -196,7 +191,7 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
         onCardClick={isMyTurn ? toggleSelect : undefined}
         isPicked={(card) => selected.includes(card.id)}
         showSort
-        onSort={sortHand}
+        sortWith={sortForBigTwo}
         hint={isMyTurn ? 'Tap cards, then Play ▶' : undefined}
       />
     </div>

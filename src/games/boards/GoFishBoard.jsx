@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { rankOf } from '../../lib/cards'
 import { useTurns, advanceTurn } from '../../engine/turns'
-import { useCardTable } from '../../engine/table'
 import { extractBooks } from '../rules/goFish'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
@@ -23,7 +22,6 @@ export default function GoFishBoard({ playerName, roomCode, onLeave }) {
   const lastAction = useStorage((root) => root.lastAction ?? { message: '', id: 0 })
 
   const { currentTurn, playerOrder, isMyTurn, otherPlayers } = useTurns(myId)
-  const { sortHand } = useCardTable()
 
   const [selectedRank, setSelectedRank] = useState(null)
   const [selectedTarget, setSelectedTarget] = useState(null)
@@ -239,7 +237,6 @@ export default function GoFishBoard({ playerName, roomCode, onLeave }) {
         onCardClick={isMyTurn ? (card) => setSelectedRank(rankOf(card) === selectedRank ? null : rankOf(card)) : undefined}
         isHighlighted={(card) => isMyTurn && selectedRank === rankOf(card)}
         showSort
-        onSort={() => sortHand(myId)}
         hint={isMyTurn ? 'Tap a card to select its rank' : undefined}
       />
     </div>

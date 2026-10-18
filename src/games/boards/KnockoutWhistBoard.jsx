@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { suitOf, sortCards } from '../../lib/cards'
+import { suitOf } from '../../lib/cards'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -137,11 +137,6 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     const seating = w.get('seating') ?? []
     storage.set('currentTurn', nextLeaderAfter(seating, alive, winner, handsObj))
   }, [])
-
-  const sortHand = useMutation(({ storage }) => {
-    const h = storage.get('hands')
-    h.set(myId, sortCards(h.get(myId) ?? []))
-  }, [myId])
 
   const pickTrump = useMutation(({ storage }, { id, suit }) => {
     const w = storage.get('whist')
@@ -284,7 +279,6 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
         onCardClick={isMyTurn ? (card) => { if (legalWhistPlay(card, myHand, leadSuit)) playCard({ id: myId, cardId: card.id }) } : undefined}
         isHighlighted={(card) => isMyTurn && legalWhistPlay(card, myHand, leadSuit)}
         showSort
-        onSort={sortHand}
         hint={isMyTurn ? (iAmDog ? 'Play your card, or hold it for a later trick' : (leadSuit ? `Follow ${leadSuit} if you can` : 'Your lead — tap a card')) : undefined}
       />
     </div>

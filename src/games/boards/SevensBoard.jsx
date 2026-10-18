@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { VALUES, rankOf, suitOf, sortCards } from '../../lib/cards'
+import { VALUES, rankOf, suitOf } from '../../lib/cards'
 import { useTurns, advanceTurn } from '../../engine/turns'
 import { suitRanges, canPlay, hasAnyMove, SUIT_ROWS } from '../rules/sevens'
 import TopBar from '../../components/TopBar'
@@ -54,11 +54,6 @@ export default function SevensBoard({ playerName, roomCode, onLeave }) {
     la.set('id', (la.get('id') ?? 0) + 1)
     if ((handsObj.get(id) ?? []).length > 0) advanceTurn(storage, id)
   }, [])
-
-  const sortHand = useMutation(({ storage }) => {
-    const h = storage.get('hands')
-    h.set(myId, sortCards(h.get(myId) ?? []))
-  }, [myId])
 
   const pass = useMutation(({ storage }, id) => {
     const la = storage.get('lastAction')
@@ -127,7 +122,6 @@ export default function SevensBoard({ playerName, roomCode, onLeave }) {
         onCardClick={isMyTurn ? (card) => { if (canPlay(card, ranges)) playCard({ id: myId, cardId: card.id }) } : undefined}
         isHighlighted={(card) => isMyTurn && canPlay(card, ranges)}
         showSort
-        onSort={sortHand}
         hint={isMyTurn ? (iCanMove ? 'Tap a glowing card to play' : 'No moves — tap Pass') : undefined}
       />
     </div>

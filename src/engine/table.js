@@ -5,7 +5,7 @@
 // run inside a setup mutation; useCardTable() hands a board the live actions.
 
 import { useMutation } from '../liveblocks.config'
-import { buildShuffledDeck, sortCards } from '../lib/cards'
+import { buildShuffledDeck } from '../lib/cards'
 
 // Clear the table back to empty. Run this first when (re)starting a game.
 export function resetTable(storage) {
@@ -81,10 +81,5 @@ export function useCardTable() {
     cardsToShuffle.sort(() => Math.random() - 0.5).forEach((card) => deck.push(card))
   }, [])
 
-  const sortHand = useMutation(({ storage }, id) => {
-    const hands = storage.get('hands')
-    hands.set(id, sortCards(hands.get(id) ?? []))
-  }, [])
-
-  return { drawCard, playCard, undoPlay, shuffleDiscardIntoDeck, sortHand }
+  return { drawCard, playCard, undoPlay, shuffleDiscardIntoDeck }
 }
