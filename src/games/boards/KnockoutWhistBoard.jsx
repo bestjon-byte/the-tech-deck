@@ -263,7 +263,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
           <span className="whist-round">Round {round} · you've won {tricksWon[myId] ?? 0} trick{(tricksWon[myId] ?? 0) === 1 ? '' : 's'}</span>
         </div>
 
-        <div className="whist-trick" data-spot="pile">
+        <div className={`whist-trick${alive.length > 4 ? ' many' : ''}`} data-spot="pile">
           {trick.length === 0
             ? <span className="trick-empty">{isMyTurn ? '👇 Lead any card' : 'Waiting for cards…'}</span>
             : trick.map((t) => (

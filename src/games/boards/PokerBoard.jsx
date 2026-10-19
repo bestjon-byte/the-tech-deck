@@ -8,7 +8,6 @@ import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
 import CardFace from '../../components/CardFace'
 import CardBack from '../../components/CardBack'
-import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
 import { choosePokerMove } from '../ai/pokerBot'
@@ -245,10 +244,18 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
             <button className="action-btn sort-btn poker-next" onClick={() => dealNext(handNo)}>{onlyOneLeft ? 'See the winner 🏆' : 'Next hand ▶'}</button>
           </div>
         )}
+      </div>
 
-        {/* My seat: chips, bet, what I've got */}
+      {/* My seat (my 2 cards, chips, what I've got) and my buttons stay stuck
+          to the bottom of the screen, so a full table can never cover them. */}
+      <div className="hand poker-dock">
         {amIn && (
           <div className={`poker-me${iFolded ? ' is-folded' : ''}`}>
+            {myHole.length > 0 && (
+              <div className="poker-hole">
+                {myHole.map((c) => <CardFace key={c.id} label={c.label} red={c.red} highlight={winnerCards.has(c.id)} />)}
+              </div>
+            )}
             <span className="poker-me-chips">💰 {chips(myChips)}</span>
             <RoleChips pk={pk} p={myId} />
             {myBet > 0 && <span className="poker-bet">bet {chips(myBet)}</span>}
@@ -298,11 +305,6 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
           </div>
         )}
       </div>
-
-      <Hand
-        cards={myHole}
-        isHighlighted={(c) => winnerCards.has(c.id)}
-      />
     </div>
   )
 }

@@ -314,8 +314,9 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   const canBeat = myLayer === 'faceDown' ? true : canPlayAny(activeCards, beatTop)
   const iAmFinished = finished.includes(myId)
 
-  // Multi-select: keep only still-valid ids (cards still in my active layer).
-  const validSelected = selected.filter((sid) => activeCards.some((c) => c.id === sid))
+  // Multi-select: keep only still-valid ids (cards still in my active layer
+  // that can still beat the pile).
+  const validSelected = selected.filter((sid) => activeCards.some((c) => c.id === sid && canPlay(c, beatTop)))
   const selectedRank = validSelected.length ? rankOf(activeCards.find((c) => c.id === validSelected[0])) : null
   // Tap a playable card to add/remove it; selecting a different rank starts over.
   const toggleSelect = (card) => {
@@ -333,7 +334,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   }
 
   return (
-    <div className="game-board">
+    <div className="game-board shed-board">
       <TopBar roomCode={roomCode} onLeave={onLeave} />
       <TurnBanner isMyTurn={isMyTurn} currentTurn={currentTurn} emoji="💩" />
       <ActionMessage message={actionMsg} />
@@ -396,39 +397,39 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
               </button>
             )}
             {discard.length > 0 && canBeat && (
-              <button className="action-btn sort-btn" onClick={() => pickUp({ id: myId })}>Pick up pile</button>
+              <button className="action-btn sort-btn" onClick={() => { pickUp({ id: myId }); setSelected([]) }}>Pick up pile</button>
             )}
           </div>
         )}
         {iAmFinished && <p className="ask-empty-msg">🎉 You went out with <b>{outWith(myId) || '…'}</b> — you're safe!</p>}
         {turnIsStuck && <AutoPassNotice who={currentTurn} myId={myId} reason="can't beat the pile" action="picking it up" />}
 
-        {/* My face-down (blind) and face-up cards */}
+        {/* My face-down (blind) cards, each with its face-up card lying on top
+            of it like on a real table (half the height of two separate rows) */}
         <div className="shed-mine">
-          <div className="shed-stack-row">
-            {myFaceDown.map((_, i) => (
-              <CardBack
-                key={i}
-                className={isMyTurn && myLayer === 'faceDown' ? 'pick-card' : ''}
-                onClick={isMyTurn && myLayer === 'faceDown' ? () => play({ id: myId, source: 'faceDown', keys: [i] }) : undefined}
-              />
-            ))}
-          </div>
-          {myFaceUp.length > 0 && (
-            <div className="shed-stack-row">
-              {myFaceUp.map((c) => (
-                <CardFace
-                  key={c.id}
-                  label={c.label}
-                  red={c.red}
-                  glass={isGlass(c)}
-                  highlight={isMyTurn && myLayer === 'faceUp' && canPlay(c, beatTop)}
-                  picked={validSelected.includes(c.id)}
-                  onClick={isMyTurn && myLayer === 'faceUp' && canPlay(c, beatTop) ? () => toggleSelect(c) : undefined}
-                />
-              ))}
-            </div>
-          )}
+          {Array.from({ length: Math.max(myFaceDown.length, myFaceUp.length) }, (_, i) => {
+            const c = myFaceUp[i]
+            return (
+              <div key={i} className="shed-pair">
+                {i < myFaceDown.length && (
+                  <CardBack
+                    className={isMyTurn && myLayer === 'faceDown' ? 'pick-card' : ''}
+                    onClick={isMyTurn && myLayer === 'faceDown' ? () => play({ id: myId, source: 'faceDown', keys: [i] }) : undefined}
+                  />
+                )}
+                {c && (
+                  <CardFace
+                    label={c.label}
+                    red={c.red}
+                    glass={isGlass(c)}
+                    highlight={isMyTurn && myLayer === 'faceUp' && canPlay(c, beatTop)}
+                    picked={validSelected.includes(c.id)}
+                    onClick={isMyTurn && myLayer === 'faceUp' && canPlay(c, beatTop) ? () => toggleSelect(c) : undefined}
+                  />
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -440,7 +441,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
         isGlass={isGlass}
         showSort
         sortWith={sortForShed}
-        hint={isMyTurn && myLayer === 'hand' && canBeat ? 'Tap matching cards, then Play ▶' : undefined}
+        hint={isMyTurn && myLayer === 'hand' && canBeat ? 'Tap matching cards, then Play\u00a0▶' : undefined}
       />
     </div>
   )

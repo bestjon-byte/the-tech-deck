@@ -477,11 +477,20 @@ h1, h2 {
   color: #0f172a;
   border-color: white;
 }
-/* Sort: [1 2 3] [♠♥♣♦] — tap one to sort, tap it again to un-sort */
+/* Sort: [1 2 3] [♠♥♣♦] — tap one to sort, tap it again to un-sort.
+   Never wraps or shrinks: the lit pill is the same size as the unlit one, so
+   tapping it can't make the hand jump. */
 .sort-group {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+}
+.sort-group .sort-btn {
+  white-space: nowrap;
+  padding: 0 12px;
+  min-height: 36px;
+  min-width: 54px;
 }
 .sort-label {
   font-size: 0.8rem;
@@ -512,7 +521,9 @@ h1, h2 {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 0 16px 4px;
+  width: 100%;
+  max-width: 460px;
+  padding: 0 14px 4px;
 }
 
 .hand-scroll {
@@ -1209,8 +1220,12 @@ h1, h2 {
 
 /* ─── Hand Hint ───────────────────────────────────────────── */
 .hand-hint {
-  color: rgba(255,255,255,0.32);
-  font-size: 0.65rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+  text-wrap: balance; /* if it must wrap, wrap it evenly — no lonely ▶ */
+  color: rgba(255,255,255,0.6);
+  font-size: 0.7rem;
   font-weight: 500;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   letter-spacing: 0.04em;
@@ -1494,7 +1509,7 @@ h1, h2 {
   height: 54px;
   border-radius: 5px;
 }
-.tableau-cards .card + .card { margin-left: -8px; }
+.tableau-cards .card + .card { margin-left: -16px; } /* a full A→K row (13 cards) still fits a phone */
 .tableau-cards .card-center-suit { font-size: 18px; }
 .tableau-cards .card-val { font-size: 9px; }
 .tableau-cards .card-suit-sm { font-size: 7px; }
@@ -1620,8 +1635,8 @@ h1, h2 {
    it slightly askew so you can see it's glass AND read the card beneath. */
 .shed-glass-stack {
   position: relative;
-  width: calc(72px + var(--n, 1) * 18px);
-  height: calc(104px + var(--n, 1) * 14px);
+  width: calc(72px + var(--n, 1) * 12px);
+  height: 104px; /* same height as a plain pile, so a 3 landing never shoves the table down */
 }
 .shed-glass-stack > * {
   position: absolute;
@@ -1629,11 +1644,11 @@ h1, h2 {
   left: 0;
 }
 .shed-glass-stack .glass-pane {
-  transform: translate(calc(var(--i) * 18px), calc(var(--i) * 14px)) rotate(calc(var(--i) * 7deg));
+  transform: translate(calc(var(--i) * 12px), calc(var(--i) * 4px)) rotate(calc(var(--i) * 6deg));
 }
 .shed-glass-stack .glass-pane.card-land { animation: glassLand 0.42s cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes glassLand {
-  from { opacity: 0; transform: translate(calc(var(--i) * 18px), calc(var(--i) * 14px - 40px)) rotate(calc(var(--i) * 7deg - 12deg)) scale(1.2); }
+  from { opacity: 0; transform: translate(calc(var(--i) * 12px), calc(var(--i) * 4px - 40px)) rotate(calc(var(--i) * 6deg - 12deg)) scale(1.2); }
 }
 
 /* ─── Shithead ────────────────────────────────────────────── */
@@ -1645,10 +1660,31 @@ h1, h2 {
 }
 .shed-mine {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
 }
+/* Compact seats so 3 opponents (4 players) fit on one row, face-up cards and all */
+.shed-board .opponents { gap: 6px; }
+.shed-board .opponent { min-width: 0; padding: 6px 7px 7px; }
+.shed-board .opponent-count { white-space: normal; text-align: center; line-height: 1.25; }
+.shed-board .shed-opp-cards .card,
+.shed-board .shed-opp-cards .card-back { width: 28px; height: 41px; }
+
+/* one face-down card with its face-up card lying on it, offset so the blue back peeks out */
+.shed-pair {
+  position: relative;
+  width: 52px;
+  height: 97px;
+}
+.shed-pair > * { position: absolute; left: 0; top: 0; }
+.shed-pair > .card { top: 22px; }
+.shed-pair .card,
+.shed-pair .card-back {
+  width: 52px;
+  height: 75px;
+  border-radius: 7px;
+}
+.shed-pair .card-center-suit { font-size: 26px; }
 .shed-stack-row {
   display: flex;
   gap: 8px;
@@ -2326,9 +2362,9 @@ body.burn-shake .game-board {
   text-shadow: 0 5px 0 var(--title-shadow, #8a5a00), 0 0 30px var(--title-glow, rgba(255,214,10,0.7));
   animation: fxSlam 0.5s cubic-bezier(0.2, 1.8, 0.5, 1) 0.05s both;
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word; /* only split a word that can't fit on its own line */
 }
-.fx-slam.big .fx-title { font-size: 96px; }
+.fx-slam.big .fx-title { font-size: min(96px, 15vw); } /* "MIRACLE!" fits on a phone */
 @keyframes fxSlam {
   from { opacity: 0; transform: scale(3) rotate(-10deg); }
   to   { opacity: 1; transform: scale(1) rotate(-4deg); }
@@ -2626,6 +2662,11 @@ body.fx-shake .game-board {
 .fx-ask .ask-bubble { z-index: 8001; } /* the question stays on top of flying cards */
 .snap-pile .empty-pile { width: 84px; height: 121px; text-align: center; letter-spacing: 0.06em; padding: 8px; }
 .whist-trick { padding-top: 22px; } /* room for the 👑 / WINNING tag */
+/* 5+ players: smaller cards so the whole trick stays on one row above your hand */
+.whist-trick.many { gap: 6px; }
+.whist-trick.many .card { width: 52px; height: 75px; }
+.whist-trick.many .card-center-suit { font-size: 26px; }
+.whist-trick.many .whist-play-name { max-width: 52px; }
 .whist-play .shed-stack-row + .whist-play-name { max-width: 320px; white-space: normal; text-align: center; }
 .ask-empty-msg { text-align: center; max-width: 340px; }
 
@@ -2634,12 +2675,27 @@ body.fx-shake .game-board {
   .table-center { gap: 10px; padding-top: 6px; }
   .action-msg-slot { min-height: 30px; padding-top: 4px; }
   .opponent { padding: 5px 8px 6px; }
-  .seat-extra { display: none; }
+  .seat-extra .opponent-cards { display: none; } /* just a fan of card backs — the count is in the label. Game info (face-up cards, poker seats) stays. */
   .pond .card-back, .pond .empty-pile { width: 40px; height: 58px; }
   .ask-ui { gap: 8px; }
   .rank-btn { min-height: 36px; padding: 5px 10px; }
-  .hand-scroll { padding-top: 16px; }
+  .hand { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .hand-inner .card { width: 64px; height: 92px; }
+  .hand-inner .card-center-suit { font-size: 34px; }
+  .hand-scroll { padding-top: 20px; } /* a picked card lifts 20px — don't clip its top */
+  .hand-controls { padding-bottom: 0; }
   .snap-buzzer { width: 112px; height: 112px; }
+  .tableau-row { min-height: 0; padding: 3px 8px; }
+  .tableau-cards .card { width: 32px; height: 46px; }
+  .tableau-cards .card + .card { margin-left: -12px; }
+  .shed-piles .card, .shed-piles .card-back, .shed-piles .empty-pile { width: 56px; height: 81px; }
+  .shed-piles .card-center-suit { font-size: 28px; }
+  .shed-glass-stack { height: 81px; }
+  .shed-board .table-center { gap: 8px; }
+  .shed-board .action-buttons .big-btn,
+  .shed-board .action-buttons .action-btn { padding-top: 9px; padding-bottom: 9px; }
+  .shed-pair { height: 93px; }
+  .shed-pair > .card { top: 18px; }
 }
 
 /* 🧘 Calm mode (✨ button in the top bar): nothing moves, flashes or shakes.
@@ -2652,6 +2708,7 @@ html.calm .fx-dim { opacity: 0.6; }
 html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
 
 /* ─── 🤠 Texas Hold'em ────────────────────────────────────── */
+.poker-board { color: #fff; } /* chips, hand names and results — not the page's default grey */
 .poker-board .opponent { min-width: 0; max-width: 31vw; padding: 6px 7px 7px; }
 .poker-board .opponent-count { white-space: normal; text-align: center; line-height: 1.25; }
 .poker-board .table-center { gap: 10px; }
@@ -2661,6 +2718,10 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
 .poker-seat-cards .card, .poker-seat-cards .card-back { width: 30px; height: 43px; }
 .poker-seat-cards .card-center-suit { font-size: 14px; }
 .poker-seat-tags { display: flex; gap: 3px; align-items: center; min-height: 16px; }
+/* D / SB / BB sit beside the cards instead of on a row of their own */
+.poker-seat { position: relative; }
+.poker-seat .poker-seat-tags { position: absolute; top: 0; right: -10px; flex-direction: column; min-height: 0; }
+.poker-seat-cards .card-back { width: 24px; height: 34px; border-radius: 4px; }
 .poker-hand-name { font-size: 0.62rem; font-weight: 700; color: #FFD60A; max-width: 96px; text-align: center; line-height: 1.1; }
 
 .poker-role {
@@ -2750,6 +2811,19 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
   font-weight: 700;
 }
 .poker-me.is-folded { opacity: 0.5; }
+/* The bottom dock: my cards + chips + buttons, sticky like everyone else's hand */
+.poker-dock {
+  gap: 8px;
+  padding-top: 14px;
+  padding-left: 12px;
+  padding-right: 12px;
+  background: linear-gradient(to top, rgba(6,28,15,0.97) calc(100% - 14px), rgba(6,28,15,0));
+}
+.poker-hole { display: flex; gap: 4px; }
+.poker-hole .card { width: 46px; height: 66px; border-radius: 6px; }
+.poker-hole .card-center-suit { font-size: 22px; }
+/* winning cards glow but don't jump — jumping covered chip counts */
+.poker-board .card-highlight { transform: none !important; }
 .poker-me-chips { font-size: 1.05rem; }
 .poker-me-hand {
   padding: 2px 10px;

@@ -35,17 +35,17 @@ export default function Hand({ cards, onCardClick, isHighlighted, isPicked, isGl
 
   return (
     <div className="hand">
-      {cards.length > 1 && (showSort || hint) && (
+      {cards.length > 0 && (showSort || hint) && (
         <div className="hand-controls">
           {hint && <span className="hand-hint">{hint}</span>}
-          {showSort && (
+          {showSort && cards.length > 1 && (
             <div className="sort-group" role="group" aria-label="Sort your hand">
               <span className="sort-label">Sort</span>
-              <button className={`action-btn sort-btn${sortMode === 'number' ? ' on' : ''}`} onClick={() => pickSort('number')}>
-                {sortMode === 'number' ? '✓ ' : ''}1 2 3
+              <button className={`action-btn sort-btn${sortMode === 'number' ? ' on' : ''}`} aria-pressed={sortMode === 'number'} onClick={() => pickSort('number')}>
+                1 2 3
               </button>
-              <button className={`action-btn sort-btn${sortMode === 'suit' ? ' on' : ''}`} onClick={() => pickSort('suit')}>
-                {sortMode === 'suit' ? '✓ ' : ''}♠<span className="sort-red">♥</span>♣<span className="sort-red">♦</span>
+              <button className={`action-btn sort-btn${sortMode === 'suit' ? ' on' : ''}`} aria-pressed={sortMode === 'suit'} onClick={() => pickSort('suit')}>
+                ♠<span className="sort-red">♥</span>♣<span className="sort-red">♦</span>
               </button>
             </div>
           )}

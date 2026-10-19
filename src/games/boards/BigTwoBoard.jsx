@@ -298,7 +298,7 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
         }}
         showSort
         sortWith={sortForBigTwo}
-        hint={isMyTurn ? 'Tap cards, then Play ▶' : undefined}
+        hint={isMyTurn ? 'Tap cards, then Play\u00a0▶' : undefined}
       />
     </div>
   )
