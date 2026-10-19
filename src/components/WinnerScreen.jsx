@@ -2,6 +2,7 @@ import { useContext, useEffect } from 'react'
 import { GameContext } from './GameContext'
 import { Confetti } from './FXLayer'
 import { playSfx } from '../lib/sfx'
+import { useCalm } from '../lib/motion'
 
 // Shown when a game finishes. Pass a title and an optional scoreboard
 // (already sorted best-first); the top three get medals. The host also gets
@@ -10,11 +11,12 @@ import { playSfx } from '../lib/sfx'
 //   rain — an emoji to rain down instead of confetti (Shithead rains 💩)
 export default function WinnerScreen({ emoji = '🏆', title, scores, onLeave, rain }) {
   const ctx = useContext(GameContext)
+  const calm = useCalm()
   useEffect(() => { playSfx('fanfare') }, [])
   return (
     <div className="lobby winner-screen">
       <Confetti count={rain ? 26 : 70} emoji={rain} loop />
-      <div className="winner-rays" />
+      {!calm && <div className="winner-rays" />}
       <div className="landing-logo winner-trophy">{emoji}</div>
       <h2 className="winner-title">{title}</h2>
       {scores && scores.length > 0 && (

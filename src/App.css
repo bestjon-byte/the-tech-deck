@@ -472,6 +472,24 @@ h1, h2 {
   color: rgba(255,255,255,0.85);
   border: 1px solid rgba(255,255,255,0.14);
 }
+.sort-btn.on {
+  background: rgba(255,255,255,0.92);
+  color: #0f172a;
+  border-color: white;
+}
+/* Sort: [1 2 3] [♠♥♣♦] — tap one to sort, tap it again to un-sort */
+.sort-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sort-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+}
+.sort-red { color: #ff6b6b; }
+.sort-btn.on .sort-red { color: #dc2626; }
 
 /* ─── Player Hand ─────────────────────────────────────────── */
 /* Your hand sits at the bottom of the screen. It's "sticky" rather than fixed,
@@ -1554,44 +1572,68 @@ h1, h2 {
 }
 
 /* ─── Glass card (Shithead's invisible 3) ─────────────────── */
+/* 🪟 A glass 3: a clear pane with bevelled edges and a glare. No blur, so you
+   can read the card underneath straight through it. */
 .card.card-glass {
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.34) 0%, rgba(190,225,255,0.12) 42%, rgba(255,255,255,0.26) 100%);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  color: rgba(255,255,255,0.92);
+    linear-gradient(135deg, rgba(220,240,255,0.3) 0%, rgba(150,205,255,0.12) 38%, rgba(150,205,255,0.1) 62%, rgba(220,240,255,0.26) 100%);
+  color: #1d4f86;
+  border: 1.5px solid rgba(225,242,255,0.85);
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.55),
-    inset 0 2px 10px rgba(255,255,255,0.3),
-    inset 0 -8px 18px rgba(120,170,220,0.18),
-    0 4px 16px rgba(0,0,0,0.3);
-  text-shadow: 0 1px 2px rgba(40,70,110,0.55);
+    inset 0 0 0 2px rgba(190,230,255,0.18),
+    inset 0 3px 6px rgba(255,255,255,0.35),
+    inset 0 -4px 10px rgba(120,180,230,0.25),
+    0 6px 18px rgba(0,0,0,0.28);
+  /* dark etched lettering with a white halo: readable on the green table AND over a white card */
+  text-shadow: 0 0 2px #fff, 0 0 4px rgba(255,255,255,0.9);
   overflow: hidden;
 }
-.card.card-glass.red { color: rgba(255,210,210,0.95); }
-/* a diagonal glare sweeping across the pane */
+.card.card-glass.red { color: #b4233a; }
+/* the big middle suit is etched faintly into the glass, so the card behind stays readable */
+.card.card-glass .card-center-suit { opacity: 0.35; }
+/* a diagonal glare across the pane */
 .card.card-glass::after {
   content: '';
   position: absolute;
   top: -40%;
   left: -30%;
-  width: 60%;
+  width: 45%;
   height: 180%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.32), transparent);
+  transform: rotate(20deg);
+  pointer-events: none;
+}
+/* a thin second glint */
+.card.card-glass::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 38%;
+  width: 8%;
+  height: 180%;
+  background: rgba(255,255,255,0.18);
   transform: rotate(20deg);
   pointer-events: none;
 }
 
-/* A glass 3 sitting on the pile, with the real card showing through behind it */
+/* Glass 3s on the pile: the real card at the back, each glass pane laid over
+   it slightly askew so you can see it's glass AND read the card beneath. */
 .shed-glass-stack {
   position: relative;
-  width: 72px;
-  height: 104px;
+  width: calc(72px + var(--n, 1) * 18px);
+  height: calc(104px + var(--n, 1) * 14px);
 }
 .shed-glass-stack > * {
   position: absolute;
   top: 0;
   left: 0;
+}
+.shed-glass-stack .glass-pane {
+  transform: translate(calc(var(--i) * 18px), calc(var(--i) * 14px)) rotate(calc(var(--i) * 7deg));
+}
+.shed-glass-stack .glass-pane.card-land { animation: glassLand 0.42s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes glassLand {
+  from { opacity: 0; transform: translate(calc(var(--i) * 18px), calc(var(--i) * 14px - 40px)) rotate(calc(var(--i) * 7deg - 12deg)) scale(1.2); }
 }
 
 /* ─── Shithead ────────────────────────────────────────────── */
@@ -2580,3 +2622,12 @@ body.fx-shake .game-board {
   .hand-scroll { padding-top: 16px; }
   .snap-buzzer { width: 112px; height: 112px; }
 }
+
+/* 🧘 Calm mode (✨ button in the top bar): nothing moves, flashes or shakes.
+   Effects still show their words and cards, they just appear and disappear. */
+html.calm *, html.calm *::before, html.calm *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html.calm .fx-dim { opacity: 0.6; }
+html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }

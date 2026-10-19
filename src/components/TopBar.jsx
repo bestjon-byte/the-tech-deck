@@ -1,14 +1,16 @@
 import { useContext, useState, useEffect } from 'react'
 import { GameContext } from './GameContext'
 import { isMuted, setMuted, playSfx } from '../lib/sfx'
+import { useCalm, setCalm } from '../lib/motion'
 
 // The bar across the top of every game board: Leave button, a sound on/off
-// button, a ? help button (which opens the game's instructions), and the room code.
+// button, an animations on/off button (✨ / 🧘 calm mode), a ? help button (which opens the game's instructions), and the room code.
 // Leave needs two taps ("Sure?"), so a stray thumb can't drop you out of a game.
 export default function TopBar({ roomCode, onLeave }) {
   const ctx = useContext(GameContext)
   const [muted, setMutedState] = useState(isMuted)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const calm = useCalm()
 
   useEffect(() => {
     if (!confirmLeave) return
@@ -33,6 +35,9 @@ export default function TopBar({ roomCode, onLeave }) {
       <div className="top-bar-right">
         <button className="help-btn" onClick={toggleSound} aria-label={muted ? 'Turn sound on' : 'Turn sound off'}>
           {muted ? '🔇' : '🔊'}
+        </button>
+        <button className="help-btn" onClick={() => setCalm(!calm)} aria-label={calm ? 'Turn animations on' : 'Turn animations off'}>
+          {calm ? '🧘' : '✨'}
         </button>
         {ctx?.openHelp && (
           <button className="help-btn" onClick={ctx.openHelp} aria-label="How to play">?</button>

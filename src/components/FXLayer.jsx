@@ -4,6 +4,7 @@ import { playSfx, buzz } from '../lib/sfx'
 import CardFace from './CardFace'
 import CardBack from './CardBack'
 import { rand } from '../lib/looks'
+import { useCalm } from '../lib/motion'
 
 // ── ✨ Special effects ─────────────────────────────────────
 // FXLayer sits on top of every game board. When a move is announced with an
@@ -18,6 +19,8 @@ import { rand } from '../lib/looks'
 //   ask    — Go Fish's "Got any 7s?" → YES! / GO FISH! show
 //
 // All of them let taps through, so nobody's turn is ever blocked.
+// In calm mode (✨ off in the top bar) titles and bubbles still show, but
+// nothing flies, spins, shakes or rains down.
 
 const DURATION = { slam: 1900, fly: 1500, bubble: 1900, ask: 3600, shake: 700 }
 function durationOf(spec) {
@@ -53,12 +56,13 @@ function pointOf(who, myId) {
 
 // Shake the table for a moment.
 function useShake(on) {
+  const calm = useCalm()
   useEffect(() => {
-    if (!on) return
+    if (!on || calm) return
     document.body.classList.add('fx-shake')
     const t = setTimeout(() => document.body.classList.remove('fx-shake'), 650)
     return () => { clearTimeout(t); document.body.classList.remove('fx-shake') }
-  }, [on])
+  }, [on, calm])
 }
 
 // Play a sound when an effect appears (optionally a little later).
@@ -75,6 +79,8 @@ const PALETTE = ['#FF9F0A', '#30D158', '#0A84FF', '#FF375F', '#BF5AF2', '#FFD60A
 
 // Paper confetti (or raining emoji, e.g. 💩) falling down the screen.
 export function Confetti({ count = 60, emoji, loop = false }) {
+  const calm = useCalm()
+  if (calm) return null
   return (
     <div className={`confetti${loop ? ' loop' : ''}`} aria-hidden="true">
       {Array.from({ length: count }, (_, i) => (
@@ -104,13 +110,14 @@ function Slam({ spec, myId }) {
   const isMe = who && who === myId
   const title = (isMe && spec.titleMe) || spec.title
   const sub = (isMe && spec.subMe) || spec.sub
+  const calm = useCalm()
   useShake(shake)
   useSound(spec.sound ?? 'slam')
   useEffect(() => { if (shake) buzz([40, 30, 80]) }, [shake])
   return (
     <div className={`fx fx-slam tone-${tone}${big ? ' big' : ''}`}>
       <div className="fx-dim" />
-      {burst && <div className="fx-burst" />}
+      {burst && !calm && <div className="fx-burst" />}
       <div className="fx-slam-box">
         {emoji && <div className={`fx-emoji${red ? ' red' : ''}`}>{emoji}</div>}
         <div className="fx-title">{title}</div>
@@ -131,12 +138,14 @@ function Slam({ spec, myId }) {
 }
 
 function Fly({ spec, myId }) {
+  const calm = useCalm()
   // Work out the start and end points once, when the effect appears.
   const [path] = useState(() => ({ a: pointOf(spec.from, myId), b: pointOf(spec.to, myId) }))
   useSound(spec.sound === undefined ? 'whoosh' : spec.sound, (spec.delay ?? 0) * 1000)
   const faces = spec.cards ?? null
   const n = faces ? faces.length : Math.min(spec.count ?? 1, 8)
   const { a, b } = path
+  if (calm) return null
   return (
     <div className="fx fx-fly mini-cards">
       {Array.from({ length: n }, (_, i) => (

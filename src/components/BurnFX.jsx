@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import CardFace from './CardFace'
-import { playSfx } from '../lib/sfx'
+import { playSfx, buzz } from '../lib/sfx'
+import { useCalm } from '../lib/motion'
 import { rand } from '../lib/looks'
 
 // 🔥 The big fire show when Shithead's pile burns.
@@ -31,6 +32,7 @@ const SMOKE = Array.from({ length: 6 }, (_, i) => ({
 }))
 
 export default function BurnFX({ burn }) {
+  const calm = useCalm() // calm mode: just the burned cards + words, no fire or shaking
   const [seenAt, setSeenAt] = useState(burn?.at ?? null) // ignore the burn that was already there
   const [active, setActive] = useState(null)
   if (burn?.at && burn.at !== seenAt) {
@@ -40,24 +42,24 @@ export default function BurnFX({ burn }) {
 
   useEffect(() => {
     if (!active) return
-    document.body.classList.add('burn-shake')
-    navigator.vibrate?.([60, 40, 120]) // buzz on phones that support it
+    if (!calm) document.body.classList.add('burn-shake')
+    buzz([60, 40, 120]) // buzz on phones that support it
     playSfx('burn')
     const t = setTimeout(() => setActive(null), FX_MS)
     return () => {
       clearTimeout(t)
       document.body.classList.remove('burn-shake')
     }
-  }, [active])
+  }, [active, calm])
 
   if (!active) return null
   const cards = active.cards ?? []
   const why = active.why === 'four' ? 'FOUR OF A KIND!' : 'TEN!'
 
   return (
-    <div className="burn-fx" key={active.at} aria-live="polite">
-      <div className="burn-flash" />
-      <div className="burn-glow" />
+    <div className={`burn-fx${calm ? ' calm' : ''}`} key={active.at} aria-live="polite">
+      {!calm && <div className="burn-flash" />}
+      {!calm && <div className="burn-glow" />}
 
       <div className="burn-cards">
         {cards.map((c, i) => (
@@ -73,6 +75,7 @@ export default function BurnFX({ burn }) {
         ))}
       </div>
 
+      {!calm && <>
       <div className="burn-flames">
         {FLAMES.map((f, i) => (
           <span
@@ -94,6 +97,7 @@ export default function BurnFX({ burn }) {
           style={{ left: `${e.left}%`, width: e.size, height: e.size, '--dx': `${e.drift}px`, animationDelay: `${e.delay}s`, animationDuration: `${e.dur}s` }}
         />
       ))}
+      </>}
 
       <div className="burn-text">
         <div className="burn-title">BURN!</div>

@@ -34,6 +34,7 @@ src/
     keepAwake.js        ← useKeepAwake(): screen wake lock in lobby + games
     sfx.js              ← playSfx('snap') — synthesised sounds (Web Audio, no files) + mute (top bar 🔊)
     looks.js            ← rand(i) (stable "random"), hueOf(name, seat) seat colours
+    motion.js           ← calm mode (✨/🧘 top-bar button): isCalm/setCalm/useCalm, puts `calm` on <html> → App.css stops all animation
   engine/
     turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder
     table.js            ← useCardTable (draw/play/undo/shuffle), dealToPlayers, dealAll, resetTable
@@ -64,7 +65,7 @@ src/
 | 🙅 Old Maid | whole deck minus Q♣ | Pairs auto-removed; take a hidden card from next holder |
 | 🔢 Sevens | whole deck | `discardPile` is the table; pass if no move |
 | 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s |
-| 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn → `shed.lastBurn` makes every phone play `BurnFX` 🔥 |
+| 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`, `outWith:Name` = the card(s) they went out with); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn → `shed.lastBurn` makes every phone play `BurnFX` 🔥 |
 | 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players); `legalPlays()` lists every legal move → smart highlights |
 
 Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, **?** in the game's top bar).
@@ -90,7 +91,7 @@ The lobby button, deal picker, game screen, help pop-up and Play Again all pick 
 
 ## ⚠️ Multiplayer rules (read before touching game logic)
 Liveblocks resolves clashes by **last write wins, per key**. Two phones changing the same key at nearly the same moment → one change is silently lost. Poor signal makes this much more likely. So:
-1. **Never re-save a whole hand from a phone that isn't changing it.** Sorting is display-only: `Hand` has its own Sort toggle (`showSort`, optional `sortWith`) and never writes to storage. (Sort used to write the hand and copied cards in Old Maid / Go Fish.)
+1. **Never re-save a whole hand from a phone that isn't changing it.** Sorting is display-only: `Hand` has its own Sort buttons — by number or by suit (`showSort`, optional `sortWith` = the game's number order; mode saved in localStorage `tech-deck-sort`) and never writes to storage. (Sort used to write the hand and copied cards in Old Maid / Go Fish.)
 2. **Only the acting player writes during their turn**, and mutations should re-check `storage.get('currentTurn') === id` before acting (Big Two, Whist, Shithead do).
 3. **Automatic moves** (things that happen after a timer, not a tap) must be done by exactly one phone — use `useInCharge(myId, preferredPlayer, order)`. The preferred phone does it if online, otherwise the first online player; only while connected, so a phone waking up with stale cards can't redo it.
 4. **Bots** have no phone: `useBotTurn` picks one human phone (via `useInCharge`) to make their moves after a short "thinking" delay.
@@ -105,6 +106,7 @@ Liveblocks resolves clashes by **last write wins, per key**. Two phones changing
 - `{ kind: 'ask', … }` — Go Fish's question/answer show
 - add `to: 'Name'` to make an effect private (Old Maid's 😱 Queen)
 Opponent seats have `data-seat={name}` so effects can find them. Snap triggers its SNAP! locally (`FXShow`) the instant `snap.winner` is set, without waiting for the award. Sounds: `playSfx(name)` in `lib/sfx.js`.
+**Calm mode** (`lib/motion.js`): new effects must still make sense with no animation — check `useCalm()` and skip anything that only moves/flashes (Fly, Confetti, burst, shake and BurnFX's fire already do).
 
 ## Layout notes
 - `.hand` is `position: sticky; bottom: 0` (not fixed) and `.game-board` uses `overflow: clip`, so the table can never slide under your hand.

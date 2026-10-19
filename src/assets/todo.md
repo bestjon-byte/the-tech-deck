@@ -45,4 +45,8 @@
 - [x] Winner screen: confetti, spinning rays, fanfare (💩 rains on the Shithead loser!)
 - [x] Layout fixes: hand can't cover the table any more, messages don't make the table jump, Sevens rows full width, Old Maid cards fit, small iPhones (SE) fit, Leave needs two taps
 - [ ] Playtest the effects at the table — too much? too little? which sound is annoying? 😄
+- [x] ✨/🧘 button in the top bar turns animations off on that phone (calm mode — no flashing, shaking, flying or confetti)
+- [x] Sort your hand by number (1 2 3) OR by suit (♠♥♣♦) — your phone remembers which; Aces sort high in Shithead + Whist
+- [x] Shithead: see the card each player went out with (big I'M OUT! show, on their seat, and on the winner screen)
+- [x] Shithead: 3s look like real glass, and played 3s sit askew on the pile so you can read the card underneath
 

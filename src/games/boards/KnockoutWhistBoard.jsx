@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { suitOf } from '../../lib/cards'
+import { suitOf, sortByValue } from '../../lib/cards'
 import { announce, useActionMessage } from '../../engine/announce'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
@@ -12,9 +12,10 @@ import { Opponent } from '../../components/Opponent'
 import { useInCharge } from '../../engine/inCharge'
 import {
   WHIST_SUITS, cardsForRound, legalWhistPlay, whistTrickWinner,
-  nextWhistActor, nextLeaderAfter, endWhistRound, dealWhistRound,
+  nextWhistActor, nextLeaderAfter, endWhistRound, dealWhistRound, cardValue,
 } from '../rules/knockoutWhist'
 
+const sortAcesHigh = (cards) => sortByValue(cards, cardValue)
 const isRed = (suit) => suit === '♥' || suit === '♦'
 
 // ── Knockout Whist ─────────────────────────────────────────
@@ -287,6 +288,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
         onCardClick={isMyTurn ? (card) => { if (legalWhistPlay(card, myHand, leadSuit)) playCard({ id: myId, cardId: card.id }) } : undefined}
         isHighlighted={(card) => isMyTurn && legalWhistPlay(card, myHand, leadSuit)}
         showSort
+        sortWith={sortAcesHigh}
         hint={isMyTurn ? (iAmDog ? 'Play your card, or hold it for a later trick' : (leadSuit ? `Follow ${leadSuit} if you can` : 'Your lead — tap a card')) : undefined}
       />
     </div>

@@ -6,6 +6,8 @@
 // iPhones only allow sound after the first tap, so we "unlock" audio on the
 // first touch.
 
+import { isCalm } from './motion'
+
 const MUTE_KEY = 'tech-deck-muted'
 let muted = false
 try { muted = localStorage.getItem(MUTE_KEY) === '1' } catch { /* private mode */ }
@@ -125,6 +127,8 @@ export function setMuted(value) {
 }
 
 // A little buzz on phones that support it (Android — iPhones ignore this).
+// No buzzing in calm mode.
 export function buzz(pattern) {
+  if (isCalm()) return
   try { navigator.vibrate?.(pattern) } catch { /* ignore */ }
 }

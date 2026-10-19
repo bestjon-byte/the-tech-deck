@@ -3,7 +3,7 @@ import { useStorage, useMutation } from '../../liveblocks.config'
 import { advanceTurnWhile } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { useAutoPass } from '../../engine/autoPass'
-import { rankOf } from '../../lib/cards'
+import { rankOf, sortByValue } from '../../lib/cards'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -15,9 +15,18 @@ import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
 import BurnFX from '../../components/BurnFX'
 import { useInCharge } from '../../engine/inCharge'
-import { canPlay, canPlayAny, topRankRun, readPile, findStarter, effectiveTop } from '../rules/shithead'
+import { canPlay, canPlayAny, topRankRun, readPile, findStarter, effectiveTop, shedVal } from '../rules/shithead'
 
 const isGlass = (card) => card && rankOf(card) === '3'
+const sortForShed = (cards) => sortByValue(cards, shedVal) // 2 low … Ace high
+
+// The glass 3s sitting on top of the pile (top card last). You can see
+// straight through them to the real card underneath.
+function glassOnTop(pile) {
+  const run = []
+  for (let i = pile.length - 1; i >= 0 && isGlass(pile[i]); i--) run.unshift(pile[i])
+  return run
+}
 
 // Which cards is this player playing from right now: hand, then face-up, then
 // the blind face-down ones.
@@ -158,6 +167,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     const done = handLeft === 0 && fuLeft === 0 && fdLeft === 0
     if (done && !finishedList.includes(id)) {
       sh.set('finished', [...finishedList, id])
+      sh.set(`outWith:${id}`, cards) // the card(s) they went out with — shown on the winner screen
     }
 
     // Little effects for the magic cards; a big one for getting out.
@@ -165,7 +175,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     if (!burned && r === '2') fx.push({ kind: 'bubble', at: '@pile', text: '🔄 Reset!' })
     if (!burned && r === '7') fx.push({ kind: 'bubble', at: '@pile', text: '⬇️ 7 or lower!' })
     if (!burned && r === '3') fx.push({ kind: 'bubble', at: '@pile', text: '👻 Invisible!' })
-    if (done) fx.push({ kind: 'slam', tone: 'green', emoji: '🎉', title: "I'M OUT!", confetti: true, sound: 'fanfare', who: id, sub: `${id} has no cards left — safe!`, subMe: "You're safe! 🎉" })
+    if (done) fx.push({ kind: 'slam', tone: 'green', emoji: '🎉', title: "I'M OUT!", cards, confetti: true, sound: 'fanfare', who: id, sub: `${id} went out with ${label} — safe!`, subMe: `You went out with ${label} — safe! 🎉` })
 
     if (burned) {
       const count = discardList.length
@@ -233,11 +243,13 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
 
   const { phase, faceDown = {}, finished = [], burned = 0 } = shed
   const faceUpOf = (p) => shed[`fu:${p}`] ?? []
+  const outWith = (p) => (shed[`outWith:${p}`] ?? []).map((c) => c.label).join(' ') // the card(s) they finished on
   const myFaceUp = faceUpOf(myId)
   const myFaceDown = faceDown[myId] ?? []
   const others = playerOrder.filter((p) => p !== myId)
   const top = discard.length ? discard[discard.length - 1] : null // actual top (may be a glass 3)
   const beatTop = effectiveTop(discard) // the card you must actually beat
+  const glass = glassOnTop(discard).slice(-3) // up to 3 glass 3s drawn over it
   const isMyTurn = currentTurn === myId && phase === 'play'
 
   // ── Swap phase ───────────────────────────────────────────
@@ -291,7 +303,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     const ranking = [...finished, ...notFinished]
     const scores = ranking.map((p, idx) => ({
       name: p,
-      detail: idx < finished.length ? `#${idx + 1} — out` : '💩 Shithead!',
+      detail: idx < finished.length ? `#${idx + 1} — out${outWith(p) ? ` with ${outWith(p)}` : ''}` : '💩 Shithead!',
     }))
     return <WinnerScreen emoji="💩" rain="💩" title={notFinished[0] ? `${notFinished[0]} is the Shithead!` : 'Game over!'} scores={scores} onLeave={onLeave} />
   }
@@ -333,7 +345,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
             <Opponent
               key={p}
               name={p}
-              sub={finished.includes(p) ? 'finished ✅' : `${(hands[p] ?? []).length} in hand · ${(faceDown[p] ?? []).length} down`}
+              sub={finished.includes(p) ? `out with ${outWith(p) || '…'} ✅` : `${(hands[p] ?? []).length} in hand · ${(faceDown[p] ?? []).length} down`}
             >
               <div className="shed-opp-cards">
                 {faceUpOf(p).map((c) => <CardFace key={c.id} label={c.label} red={c.red} glass={isGlass(c)} />)}
@@ -354,9 +366,13 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
             {!top ? (
               <div className="empty-pile discard-empty">Pile</div>
             ) : isGlass(top) ? (
-              <div className="shed-glass-stack">
-                {beatTop ? <CardFace label={beatTop.label} red={beatTop.red} /> : <div className="empty-pile discard-empty">—</div>}
-                <CardFace label={top.label} red={top.red} glass />
+              <div className="shed-glass-stack" style={{ '--n': glass.length }}>
+                {beatTop ? <CardFace label={beatTop.label} red={beatTop.red} /> : <div className="empty-pile discard-empty">Beat anything</div>}
+                {glass.map((c, i) => (
+                  <div key={c.id} className={`glass-pane${c.id === top.id ? ' card-land' : ''}`} style={{ '--i': i + 1 }}>
+                    <CardFace label={c.label} red={c.red} glass />
+                  </div>
+                ))}
               </div>
             ) : (
               <div key={top.id} className="card-land"><CardFace label={top.label} red={top.red} /></div>
@@ -384,6 +400,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
             )}
           </div>
         )}
+        {iAmFinished && <p className="ask-empty-msg">🎉 You went out with <b>{outWith(myId) || '…'}</b> — you're safe!</p>}
         {turnIsStuck && <AutoPassNotice who={currentTurn} myId={myId} reason="can't beat the pile" action="picking it up" />}
 
         {/* My face-down (blind) and face-up cards */}
@@ -422,6 +439,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
         isPicked={(card) => validSelected.includes(card.id)}
         isGlass={isGlass}
         showSort
+        sortWith={sortForShed}
         hint={isMyTurn && myLayer === 'hand' && canBeat ? 'Tap matching cards, then Play ▶' : undefined}
       />
     </div>

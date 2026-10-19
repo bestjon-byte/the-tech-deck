@@ -85,6 +85,7 @@ export function setupShithead({ storage, playerIds }) {
 
   beginTurns(storage, playerIds)
   const shed = storage.get('shed')
+  for (const k of [...shed.keys()]) if (k.startsWith('outWith:')) shed.delete(k) // last game's winning cards
   shed.set('phase', 'swap')
   shed.set('faceDown', faceDown) // only ever changed on a player's own turn
   shed.set('finished', [])

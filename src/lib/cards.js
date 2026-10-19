@@ -36,3 +36,17 @@ export function sortCards(cards) {
     return SUIT_ORDER[suitOf(a)] - SUIT_ORDER[suitOf(b)]
   })
 }
+
+// Sort by a game's own card values (e.g. Aces high), suit as a tie-breaker.
+//   sortByValue(cards, (card) => myValue(card))
+export function sortByValue(cards, valueOf) {
+  return [...cards].sort((a, b) => (valueOf(a) - valueOf(b)) || (SUIT_ORDER[suitOf(a)] - SUIT_ORDER[suitOf(b)]))
+}
+
+// Group a hand into suits (♠ ♥ ♣ ♦ — black/red/black/red so the groups are easy
+// to tell apart), each suit in number order. `byRank` is the game's own
+// number sort, so Aces-high games keep their Aces at the top of each suit.
+const SUIT_GROUP = { '♠': 0, '♥': 1, '♣': 2, '♦': 3 }
+export function sortBySuit(cards, byRank = sortCards) {
+  return byRank(cards).sort((a, b) => SUIT_GROUP[suitOf(a)] - SUIT_GROUP[suitOf(b)]) // sort is stable, so number order stays inside each suit
+}
