@@ -7,6 +7,7 @@ import { useKeepAwake } from '../lib/keepAwake'
 import { useBots, BOT_LEVELS, BOT_NAMES, levelEmoji } from '../engine/bots'
 import { LiveObject } from '../liveblocks.config'
 import { bankToBring, banksInRoom } from '../lib/bank'
+import { STAKE_LEVELS, resetStakes } from '../engine/stakes'
 
 // ── Lobby ──────────────────────────────────────────────────
 // Shows the room code, who's here, and (for the host only) the game picker and
@@ -21,6 +22,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
   const botNames = Object.keys(bots)
   const gameStarted = useStorage((root) => root.gameStarted)
   const [dealCount, setDealCount] = useState(5)
+  const [stakeUnit, setStakeUnit] = useState(0) // 💰 chips per point (0 = just for fun)
   const [gameId, setGameId] = useState(GAMES[0].id)
   const [roomNotFound, setRoomNotFound] = useState(false)
   const [showRules, setShowRules] = useState(false)
@@ -71,8 +73,9 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
 
   // One generic "start" for every game: reset, set the mode, then let the game
   // set itself up (deal cards, start turns, etc.). No per-game code here.
-  const startGame = useMutation(({ storage }, { id, playerIds, count, banks }) => {
+  const startGame = useMutation(({ storage }, { id, playerIds, count, banks, unit }) => {
     resetTable(storage)
+    resetStakes(storage, getGame(id).stakes ? unit : 0)
     storage.set('gameMode', id)
     storage.set('lastDealCount', count) // remembered so "Play again" deals the same
     getGame(id).setup({ storage, playerIds, count, banks })
@@ -82,7 +85,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
   function handleStart() {
     const playerIds = [...humanIds, ...(botsPlay ? botNames : [])]
     const count = dealCountFor(selectedGame, playerIds.length, dealCount)
-    startGame({ id: gameId, playerIds, count, banks: banksInRoom(playerName, others) })
+    startGame({ id: gameId, playerIds, count, banks: banksInRoom(playerName, others), unit: stakeUnit })
     // Navigation happens via the gameStarted effect above, for everyone.
   }
 
@@ -114,7 +117,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
             <>
               {playerName}
               <span className="you-tag">you</span>
-              {selectedGame.bank && <span className="bank-tag">💰 {bankToBring().toLocaleString()}</span>}
+              {(selectedGame.bank || (selectedGame.stakes && stakeUnit > 0)) && <span className="bank-tag">💰 {bankToBring().toLocaleString()}</span>}
               <button
                 className="name-edit-btn"
                 onClick={() => { setNameDraft(playerName); setEditingName(true) }}
@@ -129,7 +132,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
           <div key={o.connectionId} className="player-item">
             <span className="player-dot on" />
             {o.presence.playerId || '...'}
-            {selectedGame.bank && o.presence.bank != null && <span className="bank-tag">💰 {o.presence.bank.toLocaleString()}</span>}
+            {(selectedGame.bank || (selectedGame.stakes && stakeUnit > 0)) && o.presence.bank != null && <span className="bank-tag">💰 {o.presence.bank.toLocaleString()}</span>}
           </div>
         ))}
         {botNames.map((name) => (
@@ -181,6 +184,24 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
                 ))}
               </div>
               {loaded && !roomForBot && <span className="bot-full">Table's full ({selectedGame.bots.max} players max)</span>}
+            </div>
+          )}
+
+          {selectedGame.stakes && (
+            <div className="stakes-picker">
+              <span className="deal-label">💰 Play for chips?</span>
+              <div className="stakes-options">
+                {STAKE_LEVELS.map((u) => (
+                  <button key={u} className={`stakes-opt${stakeUnit === u ? ' on' : ''}`} onClick={() => setStakeUnit(u)}>
+                    {u === 0 ? 'Off' : `${u}/pt`}
+                  </button>
+                ))}
+              </div>
+              {stakeUnit > 0 && (
+                <ul className="stakes-rules">
+                  {selectedGame.stakes.summary.map((line) => <li key={line}>{line}</li>)}
+                </ul>
+              )}
             </div>
           )}
 

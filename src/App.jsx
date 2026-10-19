@@ -12,6 +12,8 @@ import { useKeepAwake } from './lib/keepAwake'
 import { readBotNames } from './engine/bots'
 import HowToPlay from './components/HowToPlay'
 import FXLayer from './components/FXLayer'
+import { StakesKeeper } from './components/Stakes'
+import { resetStakes, currentUnit } from './engine/stakes'
 import NameScreen from './screens/NameScreen'
 import LandingScreen from './screens/LandingScreen'
 import Lobby from './screens/Lobby'
@@ -37,6 +39,7 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
     if (g.bots) ids.push(...readBotNames(storage)) // 🤖 computer players play again too
     const count = storage.get('lastDealCount') ?? 5
     resetTable(storage)
+    resetStakes(storage, g.stakes ? currentUnit(storage) : 0) // same stake as last game, fresh payout
     g.setup({ storage, playerIds: ids, count, banks: banksInRoom(playerName, others) })
   }, [playerName, others])
 
@@ -51,9 +54,10 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
   }, [gameStarted, onExitToLobby])
 
   return (
-    <GameContext.Provider value={{ game, isCreator, openHelp: () => setHelpOpen(true), playAgain, chooseGame }}>
+    <GameContext.Provider value={{ myId: playerName, game, isCreator, openHelp: () => setHelpOpen(true), playAgain, chooseGame }}>
       <Board playerName={playerName} roomCode={roomCode} onLeave={onLeave} />
       <FXLayer myId={playerName} />
+      <StakesKeeper myId={playerName} game={game} />
       <HowToPlay game={game} open={helpOpen} onClose={() => setHelpOpen(false)} />
     </GameContext.Provider>
   )
@@ -129,6 +133,7 @@ function App() {
           shed: new LiveObject({}),
           bigTwo: new LiveObject({}),
           poker: new LiveObject({}),
+          stakes: new LiveObject({ unit: 0, id: '', result: null }), // 💰 playing for chips (engine/stakes.js)
           bots: new LiveObject({}), // computer players: name → 'easy' | 'medium' | 'hard'
           lastDealCount: 5,
         }}

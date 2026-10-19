@@ -42,6 +42,7 @@ src/
     inCharge.js         ← useInCharge(): which ONE phone does an automatic move (see Multiplayer rules)
     bots.js             ← 🤖 computer players: useBots, useBotTurn (one human phone moves for the bots), BOT_LEVELS
     announce.js         ← announce(storage, message, fx) — the toast + special effect for a move; useActionMessage()
+    stakes.js           ← 💰 playing for chips: resetStakes, tallyStake (count passes/mis-snaps), payTo; StakesKeeper/StakesSummary live in components/Stakes.jsx
     autoPass.js         ← useAutoPass(): when the current player has no legal move, one phone passes for them after 2.2s
   components/           ← CardFace, CardBack, Hand, Opponent (+CardFan, OpponentBacks), TopBar, TurnBanner,
                           ActionMessage, WinnerScreen, HowToPlay, BurnFX, FXLayer, AutoPassNotice,
@@ -90,6 +91,9 @@ Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, 
 6. Needs its own shared state? Add a `LiveObject` slot to `initialStorage` in `App.jsx` (like `whist`, `shed`, `bigTwo`).
 
 The lobby button, deal picker, game screen, help pop-up and Play Again all pick it up automatically.
+
+## 💰 Playing for chips (stakes)
+Host picks Off / 1 / 5 / 10 / 25 chips per point in the lobby (games with `stakes` in the registry; not Free Play or poker). Each game's payout rules are in `games/stakesRules.js` — `settle(root)` returns null until the game is over, then `{ points, lines }` (points must sum to zero). `StakesKeeper` (in GameHost): one phone saves `stakes.result`, then every phone adds its own share to its bank once (game id remembered in localStorage `tech-deck-settled`). `WinnerScreen` shows the payout. Big Two records `bigTwo.leftAtWin` when the first player goes out; Snap/Sevens count `miss:Name` / `pass:Name` with `tallyStake`.
 
 ## ⚠️ Multiplayer rules (read before touching game logic)
 Liveblocks resolves clashes by **last write wins, per key**. Two phones changing the same key at nearly the same moment → one change is silently lost. Poor signal makes this much more likely. So:

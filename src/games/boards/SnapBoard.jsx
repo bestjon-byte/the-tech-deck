@@ -3,6 +3,7 @@ import { useStorage, useMutation } from '../../liveblocks.config'
 import { rankOf } from '../../lib/cards'
 import { playSfx } from '../../lib/sfx'
 import { useTurns, advanceTurnWhile, readPlayerOrder } from '../../engine/turns'
+import { tallyStake } from '../../engine/stakes'
 import { announce, useActionMessage } from '../../engine/announce'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
@@ -120,6 +121,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     const penalty = myStack.slice(0, n)
     handsObj.set(id, myStack.slice(n))
     penalty.forEach((card) => centreList.push(card)) // push = onto the bottom of the pile
+    tallyStake(storage, `miss:${id}`) // 💰 each mis-snap costs a point when playing for chips
     announce(storage, `❌ ${id} mis-snapped — lost ${n} card${n === 1 ? '' : 's'}!`, [
       {
         kind: 'slam', tone: 'red', emoji: '❌', title: 'MIS-SNAP!', burst: false, shake: true, sound: 'buzz',

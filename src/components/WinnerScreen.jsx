@@ -3,6 +3,7 @@ import { GameContext } from './GameContext'
 import { Confetti } from './FXLayer'
 import { playSfx } from '../lib/sfx'
 import { useCalm } from '../lib/motion'
+import { StakesSummary } from './Stakes'
 
 // Shown when a game finishes. Pass a title and an optional scoreboard
 // (already sorted best-first); the top three get medals. The host also gets
@@ -30,6 +31,8 @@ export default function WinnerScreen({ emoji = '🏆', title, scores, onLeave, r
           ))}
         </div>
       )}
+
+      <StakesSummary myId={ctx?.myId} />
 
       <div className="lobby-actions">
         {ctx?.isCreator ? (

@@ -1,6 +1,7 @@
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { VALUES, rankOf, suitOf } from '../../lib/cards'
 import { useTurns, advanceTurn } from '../../engine/turns'
+import { tallyStake } from '../../engine/stakes'
 import { announce, useActionMessage } from '../../engine/announce'
 import { useAutoPass } from '../../engine/autoPass'
 import { suitRanges, canPlay, hasAnyMove, SUIT_ROWS } from '../rules/sevens'
@@ -65,6 +66,7 @@ export default function SevensBoard({ playerName, roomCode, onLeave }) {
     if (storage.get('currentTurn') !== id) return
     const hand = storage.get('hands').get(id) ?? []
     if (hand.length === 0 || hasAnyMove(hand, suitRanges(readTable(storage)))) return
+    tallyStake(storage, `pass:${id}`) // 💰 a pass puts a point in the pot when playing for chips
     announce(storage, `${id} couldn't play and passed`, { kind: 'bubble', at: id, text: '😶 Pass' })
     advanceTurn(storage, id)
   }, [])

@@ -2,6 +2,7 @@ import { useContext, useState, useEffect } from 'react'
 import { GameContext } from './GameContext'
 import { isMuted, setMuted, playSfx } from '../lib/sfx'
 import { useCalm, setCalm } from '../lib/motion'
+import { useStorage } from '../liveblocks.config'
 
 // The bar across the top of every game board: Leave button, a sound on/off
 // button, an animations on/off button (✨ / 🧘 calm mode), a ? help button (which opens the game's instructions), and the room code.
@@ -11,6 +12,7 @@ export default function TopBar({ roomCode, onLeave }) {
   const [muted, setMutedState] = useState(isMuted)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const calm = useCalm()
+  const stake = useStorage((root) => root.stakes?.unit ?? 0)
 
   useEffect(() => {
     if (!confirmLeave) return
@@ -42,6 +44,7 @@ export default function TopBar({ roomCode, onLeave }) {
         {ctx?.openHelp && (
           <button className="help-btn" onClick={ctx.openHelp} aria-label="How to play">?</button>
         )}
+        {stake > 0 && <div className="stakes-badge" title="Playing for chips">💰{stake}</div>}
         <div className="game-code">{roomCode}</div>
       </div>
     </div>

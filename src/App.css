@@ -2884,3 +2884,53 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
   color: #FFD60A;
   white-space: nowrap;
 }
+
+/* 💰 Playing for chips */
+.stakes-picker { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.stakes-options { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.stakes-opt {
+  min-width: 48px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,214,10,0.35);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.stakes-opt.on { background: #FFD60A; color: #3b2a00; border-color: #FFD60A; }
+.stakes-rules {
+  margin: 0;
+  padding: 8px 12px 8px 26px;
+  max-width: 300px;
+  border-radius: 12px;
+  background: rgba(255,214,10,0.08);
+  color: #ffe9a3;
+  font-size: 0.75rem;
+  text-align: left;
+  line-height: 1.35;
+}
+.stakes-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255,214,10,0.16);
+  border: 1px solid rgba(255,214,10,0.45);
+  color: #FFD60A;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.stakes-summary {
+  width: min(100%, 320px);
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,214,10,0.3);
+  position: relative;
+  z-index: 1;
+}
+.stakes-title { font-weight: 800; color: #FFD60A; margin-bottom: 6px; font-size: 0.85rem; }
+.stakes-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.95rem; }
+.stakes-row.up b { color: #30D158; }
+.stakes-row.down b { color: #FF6B81; }
+.stakes-lines { margin-top: 6px; font-size: 0.7rem; color: rgba(255,255,255,0.6); line-height: 1.35; text-align: left; }

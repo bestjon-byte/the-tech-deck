@@ -26,6 +26,7 @@
 - [x] Texas Hold'em 🤠 with real betting — chips, blinds, check/call/raise/fold, all-in + side pots, showdown, bots (🙂😎😈)
 - [x] Poker all-in showdowns are slow and dramatic: cards up, live win % bar, one street at a time, 🥁 drumroll for the river, RIVER MIRACLE! when the favourite loses
 - [x] Poker chips you KEEP 💰 — saved on your phone after every hand, bring them into any room (bust = fresh 1,000)
+- [x] 💰 Play any game for chips (lobby: Off / 1 / 5 / 10 / 25 per point) — each game has its own payout rules (Big Two per card ×2/×3, Shithead pays everyone, Fan Tan passes in Sevens, mis-snaps cost in Snap…) and it all goes into your bank
 - [ ] Poker: playtest! Too slow? Blinds go up too fast/slow? Want a timer so nobody can stall?
 - [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"
 

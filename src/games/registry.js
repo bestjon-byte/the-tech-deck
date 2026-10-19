@@ -25,6 +25,8 @@
 //               extra state (turns, books...).
 //   lobbyHint — OPTIONAL (playerCount) => string shown under the buttons.
 //   bank      — OPTIONAL true: players bring their saved 💰 chips (setup also gets `banks`)
+//   stakes    — OPTIONAL { summary, settle }: can be played for chips from everyone's bank
+//               (host turns it on in the lobby — see engine/stakes.js + games/stakesRules.js)
 //   rules     — { objective, howTo: [steps], win } shown in the How-to-play pop-up.
 
 import { dealToPlayers } from '../engine/table'
@@ -49,6 +51,7 @@ import { setupSevens } from './rules/sevens'
 import { setupKnockoutWhist } from './rules/knockoutWhist'
 import { setupShithead } from './rules/shithead'
 import { setupBigTwo } from './rules/bigTwo'
+import { STAKES } from './stakesRules'
 import { setupPoker, START_CHIPS, START_BLINDS, BLINDS_UP_EVERY } from './rules/poker'
 
 export const GAMES = [
@@ -73,6 +76,7 @@ export const GAMES = [
   },
   {
     id: 'gofish',
+    stakes: STAKES.gofish, // 💰 how it pays out when played for chips (stakesRules.js)
     name: 'Go Fish',
     emoji: '🎣',
     Board: GoFishBoard,
@@ -98,6 +102,7 @@ export const GAMES = [
   },
   {
     id: 'crazy8s',
+    stakes: STAKES.crazy8s,
     name: 'Crazy Eights',
     emoji: '🎵',
     Board: CrazyEightsBoard,
@@ -116,6 +121,7 @@ export const GAMES = [
   },
   {
     id: 'snap',
+    stakes: STAKES.snap,
     name: 'Snap',
     emoji: '👏',
     Board: SnapBoard,
@@ -136,6 +142,7 @@ export const GAMES = [
   },
   {
     id: 'oldmaid',
+    stakes: STAKES.oldmaid,
     name: 'Old Maid',
     emoji: '🙅',
     Board: OldMaidBoard,
@@ -155,6 +162,7 @@ export const GAMES = [
   },
   {
     id: 'sevens',
+    stakes: STAKES.sevens,
     name: 'Sevens',
     emoji: '🔢',
     Board: SevensBoard,
@@ -173,6 +181,7 @@ export const GAMES = [
   },
   {
     id: 'knockout',
+    stakes: STAKES.knockout,
     name: 'Knockout Whist',
     emoji: '🎩',
     Board: KnockoutWhistBoard,
@@ -193,6 +202,7 @@ export const GAMES = [
   },
   {
     id: 'shithead',
+    stakes: STAKES.shithead,
     name: 'Shithead',
     emoji: '💩',
     Board: ShitheadBoard,
@@ -214,6 +224,7 @@ export const GAMES = [
   },
   {
     id: 'bigtwo',
+    stakes: STAKES.bigtwo,
     name: 'Big Two',
     emoji: '2️⃣',
     Board: BigTwoBoard,

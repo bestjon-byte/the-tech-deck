@@ -64,7 +64,18 @@ function doPlay(storage, { id, cardIds }) {
   if (mustStart) bt.set('mustStartWith3D', false)
 
   const finishedList = bt.get('finished') ?? []
-  if (newHand.length === 0 && !finishedList.includes(id)) bt.set('finished', [...finishedList, id])
+  if (newHand.length === 0 && !finishedList.includes(id)) {
+    bt.set('finished', [...finishedList, id])
+    // 💰 First out? Remember what everyone's stuck with — that's what they pay for.
+    if (finishedList.length === 0) {
+      const left = {}
+      for (const p of readPlayerOrder(storage)) {
+        const h = p === id ? [] : (handsObj.get(p) ?? [])
+        left[p] = { n: h.length, twos: h.filter((c) => rankOf(c) === '2').length }
+      }
+      bt.set('leftAtWin', left)
+    }
+  }
 
   const finishedNow = bt.get('finished') ?? []
   announce(storage, `${id} played ${describeCombo(combo, cards)}`, playFx(id, combo, cards, newHand.length, finishedNow.indexOf(id) + 1))
