@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import CardFace from './CardFace'
 import { playSfx, buzz } from '../lib/sfx'
-import { useCalm } from '../lib/motion'
+import { useCalm, isCalm } from '../lib/motion'
 import { rand } from '../lib/looks'
 
 // 🔥 The big fire show when Shithead's pile burns.
@@ -42,7 +42,7 @@ export default function BurnFX({ burn }) {
 
   useEffect(() => {
     if (!active) return
-    if (!calm) document.body.classList.add('burn-shake')
+    if (!isCalm()) document.body.classList.add('burn-shake') // read, not watched: flipping calm mid-burn mustn't replay it
     buzz([60, 40, 120]) // buzz on phones that support it
     playSfx('burn')
     const t = setTimeout(() => setActive(null), FX_MS)
@@ -50,7 +50,7 @@ export default function BurnFX({ burn }) {
       clearTimeout(t)
       document.body.classList.remove('burn-shake')
     }
-  }, [active, calm])
+  }, [active])
 
   if (!active) return null
   const cards = active.cards ?? []

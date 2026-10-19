@@ -203,7 +203,10 @@ h1, h2 {
 }
 
 .leave-btn {
-  padding: 8px 16px;
+  padding: 8px 14px;
+  min-height: 36px;
+  white-space: nowrap;
+  flex-shrink: 0;
   background: rgba(255,255,255,0.09);
   color: rgba(255,255,255,0.88);
   border: 1px solid rgba(255,255,255,0.12);
@@ -229,14 +232,15 @@ h1, h2 {
 }
 
 .game-code {
-  padding: 7px 12px;
+  flex-shrink: 0;
+  padding: 7px 10px;
   background: rgba(255,159,10,0.16);
   border: 1px solid rgba(255,159,10,0.5);
   color: #FFB340;
   border-radius: 20px;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   text-transform: uppercase;
 }
@@ -513,7 +517,9 @@ h1, h2 {
   align-items: center;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   z-index: 20;
-  background: linear-gradient(to top, rgba(6,28,15,0.92) 55%, rgba(6,28,15,0));
+  /* solid behind the Sort row too, so table bits scrolling under it never
+     tangle with the buttons — only the very top edge fades */
+  background: linear-gradient(to top, rgba(6,28,15,0.95) calc(100% - 14px), rgba(6,28,15,0));
 }
 
 .hand-controls {
@@ -558,6 +564,10 @@ h1, h2 {
 .hand-inner .card + .card {
   margin-left: -26px;
 }
+/* Lifted (glowing / picked) cards keep their place in the fan, so they never
+   cover the number in the corner of the card to their right. */
+.hand-inner .card.card-highlight,
+.hand-inner .card.card-picked { z-index: 1 !important; }
 
 /* Only lift on hover for devices with a real pointer — on touchscreens a tap
    would otherwise leave the card "stuck" up until you tapped elsewhere. */
@@ -613,7 +623,7 @@ h1, h2 {
 }
 
 .landing-sub {
-  color: rgba(255,255,255,0.52);
+  color: rgba(255,255,255,0.68);
   font-size: 0.95rem;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   letter-spacing: -0.01em;
@@ -623,7 +633,7 @@ h1, h2 {
 /* Small "Updated 18 Oct, 14:05 · v2b4b842" line — check it to know your phone has the latest version */
 .version-tag {
   margin-top: 18px;
-  color: rgba(255,255,255,0.28);
+  color: rgba(255,255,255,0.5);
   font-size: 0.68rem;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   letter-spacing: 0.02em;
@@ -660,7 +670,7 @@ h1, h2 {
 }
 
 .big-btn:disabled {
-  opacity: 0.28;
+  opacity: 0.45;
   cursor: not-allowed;
   transform: none;
 }
@@ -761,7 +771,7 @@ h1, h2 {
 }
 
 .lobby-sub {
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.62);
   font-size: 0.82rem;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
   margin-top: -4px;
@@ -810,8 +820,10 @@ h1, h2 {
 }
 
 .name-edit-btn {
-  margin-left: 8px;
-  padding: 2px 6px;
+  margin-left: 4px;
+  padding: 10px 10px; /* a thumb-sized target round a small icon */
+  margin-top: -8px;
+  margin-bottom: -8px;
   border: none;
   background: transparent;
   font-size: 0.95rem;
@@ -870,8 +882,8 @@ h1, h2 {
 }
 
 .count-btn {
-  width: 30px;
-  height: 30px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.1);
@@ -1299,21 +1311,23 @@ h1, h2 {
 }
 
 .score-books {
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.62);
   font-size: 0.8rem;
   font-weight: 500;
+  text-align: right;
 }
 
 /* ─── New games: shared bits ──────────────────────────────── */
 .top-bar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
 }
 
 .help-btn {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.18);
   background: rgba(255,255,255,0.1);
@@ -1403,9 +1417,9 @@ h1, h2 {
   font-size: 0.8rem;
   text-decoration: underline;
   cursor: pointer;
-  padding: 4px;
+  padding: 10px 8px;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-  margin-top: 8px;
+  margin-top: 2px;
 }
 .rules-link:hover { color: white; }
 
@@ -1978,6 +1992,7 @@ body.burn-shake .game-board {
   gap: 6px;
 }
 .bot-level-btn {
+  min-height: 38px;
   padding: 7px 11px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.14);
@@ -2684,10 +2699,22 @@ body.fx-shake .game-board {
   .hand-inner .card-center-suit { font-size: 34px; }
   .hand-scroll { padding-top: 20px; } /* a picked card lifts 20px — don't clip its top */
   .hand-controls { padding-bottom: 0; }
+  .hand-inner .card-picked { transform: translateY(-16px) scale(1.04) !important; } /* stays inside the 20px lift room */
   .snap-buzzer { width: 112px; height: 112px; }
   .tableau-row { min-height: 0; padding: 3px 8px; }
   .tableau-cards .card { width: 32px; height: 46px; }
   .tableau-cards .card + .card { margin-left: -12px; }
+  /* Go Fish: drop the "(or tap…)" asides (the hand hint says it) and put
+     your books on one line, so it all fits above your hand */
+  .ask-hint { display: none; }
+  .ask-confirm-btn { padding-top: 11px; padding-bottom: 11px; }
+  .my-books { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 6px; }
+  .book-chip { padding: 2px 8px; }
+  /* winner screen: Play Again / Leave stay on screen */
+  .winner-screen { gap: 10px; padding: 24px 20px; justify-content: flex-start; }
+  .winner-trophy { font-size: 3.6rem; }
+  .winner-title { font-size: 1.5rem; }
+  .winner-screen .score-item { padding: 8px 12px; }
   .shed-piles .card, .shed-piles .card-back, .shed-piles .empty-pile { width: 56px; height: 81px; }
   .shed-piles .card-center-suit { font-size: 28px; }
   .shed-glass-stack { height: 81px; }
@@ -2696,6 +2723,15 @@ body.fx-shake .game-board {
   .shed-board .action-buttons .action-btn { padding-top: 9px; padding-bottom: 9px; }
   .shed-pair { height: 93px; }
   .shed-pair > .card { top: 18px; }
+}
+
+/* Narrow phones (320px): squeeze the top bar so the room code stays on screen */
+@media (max-width: 359px) {
+  .top-bar { padding-left: 10px; padding-right: 10px; }
+  .top-bar-right { gap: 4px; }
+  .help-btn { width: 32px; height: 32px; }
+  .leave-btn { padding: 8px 10px; }
+  .game-code { padding: 7px 7px; letter-spacing: 0.04em; }
 }
 
 /* 🧘 Calm mode (✨ button in the top bar): nothing moves, flashes or shakes.
@@ -2964,6 +3000,7 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
 .stakes-options { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .stakes-opt {
   min-width: 48px;
+  min-height: 38px;
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255,214,10,0.35);
@@ -2986,6 +3023,8 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
   line-height: 1.35;
 }
 .stakes-badge {
+  white-space: nowrap;
+  flex-shrink: 0;
   padding: 3px 8px;
   border-radius: 999px;
   background: rgba(255,214,10,0.16);

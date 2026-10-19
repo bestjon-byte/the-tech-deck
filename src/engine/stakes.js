@@ -56,3 +56,29 @@ export function payTo(winner, payers, amount) {
   }
   return points
 }
+
+// Nobody can lose more chips than they've got, so a big loss is cut down to
+// the loser's whole bank — and the winners share only what was really paid
+// (so chips are never made out of thin air). Bots have no bank: they pay in full.
+//   capToBanks({ Sam: 300, Dad: -300 }, { Dad: 120 }) → { chips: { Sam: 120, Dad: -120 }, capped: ['Dad'] }
+export function capToBanks(raw, banks) {
+  const chips = { ...raw }
+  const capped = []
+  let short = 0
+  for (const [p, n] of Object.entries(raw)) {
+    const has = banks[p]
+    if (n < 0 && typeof has === 'number' && -n > has) {
+      chips[p] = -has
+      short += -n - has
+      capped.push(p)
+    }
+  }
+  if (!short) return { chips, capped }
+  const winners = Object.keys(raw).filter((p) => raw[p] > 0).sort((a, b) => raw[b] - raw[a])
+  const won = winners.reduce((t, p) => t + raw[p], 0)
+  const toShare = won - short
+  let given = 0
+  for (const p of winners) { chips[p] = Math.floor(raw[p] * toShare / won); given += chips[p] }
+  if (winners.length) chips[winners[0]] += toShare - given // odd chips to the biggest winner
+  return { chips, capped }
+}

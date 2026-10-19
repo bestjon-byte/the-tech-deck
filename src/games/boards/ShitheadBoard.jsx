@@ -3,7 +3,7 @@ import { useStorage, useMutation } from '../../liveblocks.config'
 import { advanceTurnWhile } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { useAutoPass } from '../../engine/autoPass'
-import { rankOf, sortByValue } from '../../lib/cards'
+import { rankOf, sortByValue, nCards } from '../../lib/cards'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
 import ActionMessage from '../../components/ActionMessage'
@@ -43,7 +43,7 @@ function doPickUp(storage, id, why = '') {
   const handsObj = storage.get('hands')
   while (discardList.length > 0) discardList.delete(0)
   handsObj.set(id, [...(handsObj.get(id) ?? []), ...pile])
-  announce(storage, `😤 ${id} ${why}picked up ${pile.length} cards`, [
+  announce(storage, `😤 ${id} ${why}picked up ${nCards(pile.length)}`, [
     { kind: 'slam', tone: 'brown', emoji: '😤', title: 'PICK UP!', burst: false, sound: 'sad', who: id, sub: `${id} takes ${pile.length} card${pile.length === 1 ? '' : 's'}`, subMe: `You take ${pile.length} card${pile.length === 1 ? '' : 's'}` },
     { kind: 'fly', from: '@pile', to: id, count: pile.length, sound: null },
   ])
@@ -303,7 +303,8 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
     const ranking = [...finished, ...notFinished]
     const scores = ranking.map((p, idx) => ({
       name: p,
-      detail: idx < finished.length ? `#${idx + 1} — out${outWith(p) ? ` with ${outWith(p)}` : ''}` : '💩 Shithead!',
+      detail: idx < finished.length ? `#${idx + 1} — out${outWith(p) ? ` with ${outWith(p)}` : ''}` : 'Shithead!',
+      medal: idx < finished.length ? undefined : '💩',
     }))
     return <WinnerScreen emoji="💩" rain="💩" title={notFinished[0] ? `${notFinished[0]} is the Shithead!` : 'Game over!'} scores={scores} onLeave={onLeave} />
   }

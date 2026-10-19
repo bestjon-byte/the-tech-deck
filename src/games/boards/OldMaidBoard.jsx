@@ -1,5 +1,5 @@
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { rankOf } from '../../lib/cards'
+import { rankOf, nCards } from '../../lib/cards'
 import { useTurns, advanceTurnWhile, getNextTurn } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { extractPairs } from '../rules/oldMaid'
@@ -97,7 +97,7 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
           {playerOrder.filter((p) => p !== myId).map((p) => {
             const n = (hands[p] ?? []).length
             return (
-              <Opponent key={p} name={p} sub={n ? `${n} cards${p === victim ? ' · 🎯' : ''}` : 'safe 😎'}>
+              <Opponent key={p} name={p} sub={n ? `${nCards(n)}${p === victim ? ' · 🎯' : ''}` : 'safe 😎'}>
                 <CardFan count={n} />
               </Opponent>
             )

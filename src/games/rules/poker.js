@@ -566,6 +566,26 @@ function finishHand(storage, { foldWin }) {
   announce(storage, msg, fx)
 }
 
+// 🚪 Leaving mid-hand counts as folding it: whatever you've put in the pot
+// stays there (so you can't dodge a losing all-in by walking off). On your
+// turn it's a normal fold; otherwise you're just marked folded, and if that
+// leaves one player standing they take the pot.
+export function leaveHand(storage, id) {
+  const pkObj = storage.get('poker')
+  const pk = read(storage)
+  if (pk.phase !== 'betting' && pk.phase !== 'runout') return
+  if (!(pk.inHand ?? []).includes(id) || (pk.folded ?? []).includes(id)) return
+  if (pk.phase === 'betting' && storage.get('currentTurn') === id) {
+    doAction(storage, { id, kind: 'fold' })
+    return
+  }
+  pkObj.set('folded', [...(pk.folded ?? []), id])
+  announce(storage, `🚪 ${id} left the table and folded`, { kind: 'bubble', at: id, text: '🚪 Folded' })
+  const live = stillIn(read(storage))
+  if (live.length === 1) finishHand(storage, { foldWin: live[0] })
+  // otherwise betting (or the all-in runout) just carries on without them
+}
+
 const seatFrom = (order, dealer, p) => (order.indexOf(p) - order.indexOf(dealer) + order.length - 1) % order.length
 
 // Start the next hand — exactly once, even if two phones ask at the same time.

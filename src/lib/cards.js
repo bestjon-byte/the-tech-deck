@@ -50,3 +50,6 @@ const SUIT_GROUP = { '♠': 0, '♥': 1, '♣': 2, '♦': 3 }
 export function sortBySuit(cards, byRank = sortCards) {
   return byRank(cards).sort((a, b) => SUIT_GROUP[suitOf(a)] - SUIT_GROUP[suitOf(b)]) // sort is stable, so number order stays inside each suit
 }
+
+// "1 card" / "5 cards"
+export const nCards = (n) => `${n} card${n === 1 ? '' : 's'}`

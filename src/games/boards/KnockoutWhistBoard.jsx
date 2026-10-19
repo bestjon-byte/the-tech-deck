@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { suitOf, sortByValue } from '../../lib/cards'
+import { suitOf, sortByValue, nCards } from '../../lib/cards'
 import { announce, useActionMessage } from '../../engine/announce'
 import TopBar from '../../components/TopBar'
 import TurnBanner from '../../components/TurnBanner'
@@ -251,7 +251,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
               key={p}
               name={`${p}${dogs.includes(p) ? ' 🐶' : ''}`}
               id={p}
-              sub={alive.includes(p) ? `${(hands[p] ?? []).length} cards · ${tricksWon[p] ?? 0} won` : 'knocked out'}
+              sub={alive.includes(p) ? `${nCards((hands[p] ?? []).length)} · ${tricksWon[p] ?? 0} won` : 'knocked out'}
             />
           ))}
         </div>

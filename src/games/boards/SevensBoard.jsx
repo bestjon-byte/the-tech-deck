@@ -1,5 +1,5 @@
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { VALUES, rankOf, suitOf } from '../../lib/cards'
+import { VALUES, rankOf, suitOf, nCards } from '../../lib/cards'
 import { useTurns, advanceTurn } from '../../engine/turns'
 import { tallyStake } from '../../engine/stakes'
 import { announce, useActionMessage } from '../../engine/announce'
@@ -84,7 +84,7 @@ export default function SevensBoard({ playerName, roomCode, onLeave }) {
     const scores = playerOrder
       .map((p) => ({ name: p, count: (hands[p] ?? []).length }))
       .sort((a, b) => a.count - b.count)
-      .map((s) => ({ name: s.name, detail: `${s.count} cards left` }))
+      .map((s) => ({ name: s.name, detail: `${nCards(s.count)} left` }))
     return <WinnerScreen emoji="🔢" title={`${winner} wins Sevens!`} scores={scores} onLeave={onLeave} />
   }
 
@@ -97,7 +97,7 @@ export default function SevensBoard({ playerName, roomCode, onLeave }) {
       <div className="table-top">
         <div className="opponents">
           {otherPlayers.map((p) => (
-            <Opponent key={p} name={p} sub={`${(hands[p] ?? []).length} cards`} />
+            <Opponent key={p} name={p} sub={`${nCards((hands[p] ?? []).length)}`} />
           ))}
         </div>
       </div>

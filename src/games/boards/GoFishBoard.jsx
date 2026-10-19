@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { rankOf } from '../../lib/cards'
+import { rankOf, nCards } from '../../lib/cards'
 import { useTurns, advanceTurn } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { useAutoPass } from '../../engine/autoPass'
@@ -164,7 +164,7 @@ export default function GoFishBoard({ playerName, roomCode, onLeave }) {
               <Opponent
                 key={p}
                 name={p}
-                sub={`${(hands[p] ?? []).length} cards${n ? ` · 📚 ${n}` : ''}`}
+                sub={`${nCards((hands[p] ?? []).length)}${n ? ` · 📚 ${n}` : ''}`}
                 onClick={canAsk && otherPlayers.length > 1 ? () => setPickedTarget(p === pickedTarget ? null : p) : undefined}
                 selected={canAsk && selectedTarget === p}
               >

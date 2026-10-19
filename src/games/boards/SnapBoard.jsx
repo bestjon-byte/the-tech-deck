@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { rankOf } from '../../lib/cards'
+import { rankOf, nCards } from '../../lib/cards'
 import { playSfx } from '../../lib/sfx'
 import { useTurns, advanceTurnWhile, readPlayerOrder } from '../../engine/turns'
 import { tallyStake } from '../../engine/stakes'
@@ -145,7 +145,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     while (centreList.length > 0) { won.push(centreList.get(0)); centreList.delete(0) }
     handsObj.set(winner, [...(handsObj.get(winner) ?? []), ...won])
 
-    announce(storage, `SNAP! ${winner} grabbed ${won.length} cards 👏`)
+    announce(storage, `SNAP! ${winner} grabbed ${nCards(won.length)} 👏`)
     snap.set('winner', '')
 
     const ct = storage.get('currentTurn')
@@ -197,7 +197,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
       <div className="table-top">
         <div className="opponents">
           {otherPlayers.map((p) => (
-            <Opponent key={p} name={p} sub={`${(hands[p] ?? []).length} cards`}>
+            <Opponent key={p} name={p} sub={`${nCards((hands[p] ?? []).length)}`}>
               {(hands[p] ?? []).length > 0 && <div className="opponent-cards"><CardBack /></div>}
             </Opponent>
           ))}

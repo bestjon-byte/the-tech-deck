@@ -14,7 +14,7 @@ import { Opponent, CardFan } from '../../components/Opponent'
 import { useBotTurn, useBots } from '../../engine/bots'
 import { chooseBigTwoMove } from '../ai/bigTwoBot'
 import { identifyCombo, isLegalPlay, describeCombo, sortForBigTwo, legalPlays, selectableCardIds, highlightHintIds } from '../rules/bigTwo'
-import { rankOf } from '../../lib/cards'
+import { rankOf, nCards } from '../../lib/cards'
 
 // The big plays get a big moment.
 const COMBO_SLAM = {
@@ -250,7 +250,7 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
               name={p}
               sub={finished.includes(p)
                 ? `finished — #${finished.indexOf(p) + 1} ✅`
-                : `${(hands[p] ?? []).length} cards${bots[p] && currentTurn === p ? ' · 🤔' : ''}`}
+                : `${nCards((hands[p] ?? []).length)}${bots[p] && currentTurn === p ? ' · 🤔' : ''}`}
             >
               <CardFan count={(hands[p] ?? []).length} />
             </Opponent>

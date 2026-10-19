@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { useStorage, useMutation } from '../liveblocks.config'
+import { useStorage, useMutation, useOthers } from '../liveblocks.config'
 import { useInCharge } from '../engine/inCharge'
-import { bankToBring, setBank } from '../lib/bank'
+import { bankToBring, setBank, banksInRoom } from '../lib/bank'
+import { capToBanks } from '../engine/stakes'
 
 // 💰 The chips side of a game played for chips (see engine/stakes.js).
 
@@ -25,17 +26,20 @@ export function StakesKeeper({ myId, game }) {
   const iRecord = useInCharge(myId, order[0], order)
   const outcome = stakes?.unit > 0 && game.stakes && !stakes.result ? game.stakes.settle(root) : null
 
-  const record = useMutation(({ storage }, { id, outcome: o }) => {
+  const others = useOthers()
+  const record = useMutation(({ storage }, { id, outcome: o, banks }) => {
     const st = storage.get('stakes')
     if (!st || st.get('id') !== id || st.get('result')) return
     const unit = st.get('unit')
-    const chips = Object.fromEntries(Object.entries(o.points).map(([p, n]) => [p, Math.round(n * unit)]))
-    st.set('result', { id, chips, lines: o.lines ?? [], unit })
+    const raw = Object.fromEntries(Object.entries(o.points).map(([p, n]) => [p, Math.round(n * unit)]))
+    const { chips, capped } = capToBanks(raw, banks)
+    const lines = [...(o.lines ?? []), ...capped.map((p) => `${p} only had ${banks[p].toLocaleString()} chips — paid what they had`)]
+    st.set('result', { id, chips, lines, unit })
   }, [])
 
   const outcomeKey = outcome ? JSON.stringify(outcome.points) : ''
   useEffect(() => {
-    if (outcome && iRecord) record({ id: stakes.id, outcome })
+    if (outcome && iRecord) record({ id: stakes.id, outcome, banks: banksInRoom(myId, others) })
   }, [outcomeKey, iRecord]) // eslint-disable-line react-hooks/exhaustive-deps -- outcomeKey stands for outcome
 
   // Pay my share into my bank, once per game.

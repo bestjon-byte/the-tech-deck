@@ -11,7 +11,7 @@ import CardBack from '../../components/CardBack'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
 import { choosePokerMove } from '../ai/pokerBot'
-import { doAction, nextHand, runoutStep, equity, optionsFor, potOf, bestHand, describeStart } from '../rules/poker'
+import { doAction, nextHand, runoutStep, leaveHand, equity, optionsFor, potOf, bestHand, describeStart } from '../rules/poker'
 import { playSfx } from '../../lib/sfx'
 import { hueOf } from '../../lib/looks'
 import { setBank } from '../../lib/bank'
@@ -47,8 +47,17 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
   const lastActionId = useStorage((root) => root.lastAction?.id ?? 0)
   const actionMsg = useActionMessage(3500)
   const [raiseTo, setRaiseTo] = useState(null) // null = raise panel closed
+  const [confirmFold, setConfirmFold] = useState(false) // folding when checking is free needs a 2nd tap
 
   const act = useMutation(({ storage }, args) => doAction(storage, args), [])
+  // 🚪 Leaving mid-hand folds it, and your bank keeps only the chips still in
+  // front of you — what you'd already bet stays in the pot.
+  const foldAndLeave = useMutation(({ storage }) => {
+    leaveHand(storage, myId)
+    const left = storage.get('poker')?.get('chips')?.[myId]
+    if (left != null) setBank(left)
+  }, [myId])
+  const leave = () => { foldAndLeave(); onLeave() }
   const dealNext = useMutation(({ storage }, handNo) => nextHand(storage, handNo), [])
 
   // 🤖 A bot's go: decide from the table as it is RIGHT NOW.
@@ -120,6 +129,7 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
   if (panelFor !== turnKey) {
     setPanelFor(turnKey)
     setRaiseTo(null)
+    setConfirmFold(false)
   }
 
   if (!pk || !hands || !phase) {
@@ -132,7 +142,7 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
     const ranking = [champ, ...[...(pk.busted ?? [])].reverse()].filter(Boolean)
     const scores = ranking.map((p, i) => ({ name: p, detail: i === 0 ? `💰 ${chips(pk.chips?.[p])}` : `out ${['', '2nd', '3rd'][i] ?? `${i + 1}th`}` }))
     const title = champ === myId ? `You win all the chips — ${chips(pk.chips?.[myId])} saved to your bank! 🤑` : `${champ} wins all the chips!`
-    return <WinnerScreen emoji="🤠" title={title} scores={scores} onLeave={onLeave} />
+    return <WinnerScreen emoji="🤠" title={title} scores={scores} onLeave={leave} />
   }
 
   const board = pk.board ?? []
@@ -175,7 +185,7 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
 
   return (
     <div className="game-board poker-board">
-      <TopBar roomCode={roomCode} onLeave={onLeave} />
+      <TopBar roomCode={roomCode} onLeave={leave} />
       <TurnBanner isMyTurn={isMyTurn} currentTurn={currentTurn} emoji="🤠" text={banner} />
       <ActionMessage message={actionMsg} />
 
@@ -268,7 +278,12 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
 
         {isMyTurn && raiseTo == null && (
           <div className="poker-actions">
-            <button className="poker-btn fold" onClick={() => act({ id: myId, kind: 'fold' })}>Fold</button>
+            <button
+              className="poker-btn fold"
+              onClick={() => (o.canCheck && !confirmFold ? setConfirmFold(true) : act({ id: myId, kind: 'fold' }))}
+            >
+              {confirmFold ? 'Fold? Check is free!' : 'Fold'}
+            </button>
             {o.canCheck
               ? <button className="poker-btn check" onClick={() => act({ id: myId, kind: 'check' })}>Check</button>
               : <button className="poker-btn call" onClick={() => act({ id: myId, kind: 'call' })}>{o.toCall >= myChips ? `All in ${chips(o.toCall)}` : `Call ${chips(o.toCall)}`}</button>}

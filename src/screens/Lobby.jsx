@@ -44,6 +44,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
   const humanIds = [playerName, ...others.map((o) => o.presence.playerId).filter(Boolean)]
   const totalPlayers = humanIds.length + (botsPlay ? botNames.length : 0)
   const roomForBot = loaded && botsPlay && totalPlayers < selectedGame.bots.max
+  const tooMany = !!selectedGame.maxPlayers && totalPlayers > selectedGame.maxPlayers
 
   // 🤖 Add / remove a computer player (host only).
   const addBot = useMutation(({ storage }, { level, taken }) => {
@@ -217,13 +218,14 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
           )}
 
           {selectedGame.lobbyHint && (
-            <p className="lobby-sub" style={{ fontSize: '0.75rem', maxWidth: 220 }}>
+            <p className="lobby-sub" style={{ fontSize: '0.75rem', maxWidth: 300, textWrap: 'balance' }}>
               {selectedGame.lobbyHint(totalPlayers)}
             </p>
           )}
 
           <div className="lobby-actions">
-            <button className="big-btn create-btn" onClick={handleStart} disabled={!loaded}>{loaded ? 'Start Game' : 'Connecting…'}</button>
+            {tooMany && <p className="bot-full">{selectedGame.name} is for up to {selectedGame.maxPlayers} players — there are {totalPlayers} here</p>}
+            <button className="big-btn create-btn" onClick={handleStart} disabled={!loaded || tooMany}>{loaded ? 'Start Game' : 'Connecting…'}</button>
             <button className="big-btn back-btn" onClick={onLeave}>Leave Room</button>
           </div>
         </>

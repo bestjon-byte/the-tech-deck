@@ -85,7 +85,7 @@ export const STAKES = {
   // 🎣 Books are money: you win (or pay) the difference in books with every
   // other player, and the top fisher gets a bonus.
   gofish: {
-    summary: ['Each book is worth 1 point against every player with fewer', 'Most books (no tie): +2 from everyone'],
+    summary: ['Against each other player: win 1 point for every book you have more than them (pay 1 for every book fewer)', 'Most books (no tie): +2 from everyone'],
     settle(root) {
       const all = order(root)
       const books = Object.fromEntries(all.map((p) => [p, (root.books?.[p] ?? []).length]))
@@ -125,7 +125,7 @@ export const STAKES = {
 
   // 👏 Everyone antes; every mis-snap costs extra. The winner takes it all.
   snap: {
-    summary: ['Everyone puts 5 points in the pot — the winner takes it', 'Every MIS-SNAP adds 1 more point from you'],
+    summary: ['Everyone puts 5 points in the pot — the winner takes it', 'Every MIS-SNAP adds 1 more point to the pot'],
     settle(root) {
       const all = order(root)
       const stillIn = all.filter((p) => handOf(root, p).length > 0)
@@ -168,7 +168,7 @@ export const STAKES = {
       const points = payTo(winner, all, (p) => {
         const n = handOf(root, p).length
         const passes = tallyOf(root, `pass:${p}`)
-        lines.push(`${p}: ${plural(n, 'card')} + ${passes} pass${passes === 1 ? '' : 'es'}`)
+        lines.push(`${p}: ${plural(n, 'card')} + ${passes} pass${passes === 1 ? '' : 'es'} = ${n + passes}`)
         return n + passes
       })
       return { points, lines }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { SUITS, rankOf, suitOf } from '../../lib/cards'
+import { SUITS, rankOf, suitOf, nCards } from '../../lib/cards'
 import { useTurns, advanceTurn } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { useAutoPass } from '../../engine/autoPass'
@@ -125,7 +125,7 @@ export default function CrazyEightsBoard({ playerName, roomCode, onLeave }) {
     const scores = playerOrder
       .map((p) => ({ name: p, count: (hands[p] ?? []).length }))
       .sort((a, b) => a.count - b.count)
-      .map((s) => ({ name: s.name, detail: `${s.count} cards left` }))
+      .map((s) => ({ name: s.name, detail: `${nCards(s.count)} left` }))
     return <WinnerScreen emoji="🎵" title={`${winner} wins Crazy Eights!`} scores={scores} onLeave={onLeave} />
   }
 
@@ -148,7 +148,7 @@ export default function CrazyEightsBoard({ playerName, roomCode, onLeave }) {
       <div className="table-top">
         <div className="opponents">
           {otherPlayers.map((p) => (
-            <Opponent key={p} name={p} sub={`${(hands[p] ?? []).length} cards`}>
+            <Opponent key={p} name={p} sub={`${nCards((hands[p] ?? []).length)}`}>
               <CardFan count={(hands[p] ?? []).length} />
             </Opponent>
           ))}

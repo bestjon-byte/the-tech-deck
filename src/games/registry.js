@@ -24,6 +24,7 @@
 //               ({ storage, playerIds, count }). Deals the cards and sets up any
 //               extra state (turns, books...).
 //   lobbyHint — OPTIONAL (playerCount) => string shown under the buttons.
+//   maxPlayers — OPTIONAL: the lobby won't start with more players than this
 //   bank      — OPTIONAL true: players bring their saved 💰 chips (setup also gets `banks`)
 //   stakes    — OPTIONAL { summary, settle }: can be played for chips from everyone's bank
 //               (host turns it on in the lobby — see engine/stakes.js + games/stakesRules.js)
@@ -231,7 +232,9 @@ export const GAMES = [
     deal: { all: true }, // deals a fixed hand size: 13 each for 4 players, 17 each for 2 or 3
     setup: setupBigTwo,
     bots: { max: 4 }, // 🤖 computer players allowed, up to 4 players in total
+    maxPlayers: 4, // 13 or 17 cards each only works for 2–4
     lobbyHint: (n) => {
+      if (n > 4) return `${n} players — Big Two is for 2–4`
       const size = n === 4 ? 13 : 17
       const opener = n === 3 ? '3♦ sits out — first player leads' : 'whoever holds the 3♦ leads first'
       return `${n} player${n === 1 ? '' : 's'} · ${size} cards each · ${opener}`

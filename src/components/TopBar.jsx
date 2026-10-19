@@ -32,7 +32,7 @@ export default function TopBar({ roomCode, onLeave }) {
         className={`leave-btn${confirmLeave ? ' confirm' : ''}`}
         onClick={() => (confirmLeave ? onLeave() : setConfirmLeave(true))}
       >
-        {confirmLeave ? 'Leave? Tap again' : '← Leave'}
+        {confirmLeave ? 'Tap to leave' : '← Leave'}
       </button>
       <div className="top-bar-right">
         <button className="help-btn" onClick={toggleSound} aria-label={muted ? 'Turn sound on' : 'Turn sound off'}>
