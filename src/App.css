@@ -2114,6 +2114,25 @@ body.burn-shake .game-board {
 .whist-play.winner { transform: translateY(-8px) scale(1.08); }
 .whist-play.winner .card { box-shadow: 0 0 0 3px #FFD60A, 0 0 26px rgba(255,214,10,0.8); }
 .whist-play.loser { opacity: 0.45; transform: scale(0.94); }
+/* the card currently winning a trick that's still being played */
+.whist-play.leading { transform: translateY(-5px); }
+.whist-play.leading .card { box-shadow: 0 0 0 3px #30D158, 0 0 18px rgba(48,209,88,0.75); }
+.trick-leading {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #30D158;
+  color: #062b12;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 2;
+}
 .trick-crown {
   position: absolute;
   top: -22px;
@@ -2606,7 +2625,7 @@ body.fx-shake .game-board {
 }
 .fx-ask .ask-bubble { z-index: 8001; } /* the question stays on top of flying cards */
 .snap-pile .empty-pile { width: 84px; height: 121px; text-align: center; letter-spacing: 0.06em; padding: 8px; }
-.whist-trick { padding-top: 18px; } /* room for the 👑 */
+.whist-trick { padding-top: 22px; } /* room for the 👑 / WINNING tag */
 .whist-play .shed-stack-row + .whist-play-name { max-width: 320px; white-space: normal; text-align: center; }
 .ask-empty-msg { text-align: center; max-width: 340px; }
 

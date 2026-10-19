@@ -196,6 +196,9 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
   // still play this trick (I can't sit out an otherwise-empty trick).
   const playedNames = new Set(trick.map((t) => t.player))
   const trickSkips = whist.trickSkips ?? []
+  // Who's winning the trick so far? Lit up while it's still being played, so
+  // everyone can see the card to beat (the 👑 takes over once it's finished).
+  const leading = !trickWinner && trick.length > 1 ? whistTrickWinner(trick, leadSuit, trump) : ''
   const someoneElseCanPlay = alive.some((p) => p !== myId && !playedNames.has(p) && !trickSkips.includes(p) && (hands[p] ?? []).length > 0)
   const iAmDog = dogs.includes(myId)
   const canHold = iAmDog && isMyTurn && (trick.length > 0 || someoneElseCanPlay)
@@ -264,8 +267,9 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
           {trick.length === 0
             ? <span className="trick-empty">{isMyTurn ? '👇 Lead any card' : 'Waiting for cards…'}</span>
             : trick.map((t) => (
-                <div key={t.player} className={`whist-play${trickWinner === t.player ? ' winner' : ''}${trickWinner && trickWinner !== t.player ? ' loser' : ''}`}>
+                <div key={t.player} className={`whist-play${trickWinner === t.player ? ' winner' : ''}${trickWinner && trickWinner !== t.player ? ' loser' : ''}${leading === t.player ? ' leading' : ''}`}>
                   {trickWinner === t.player && <span className="trick-crown">👑</span>}
+                  {leading === t.player && <span className="trick-leading">Winning</span>}
                   <div className="card-land"><CardFace label={t.label} red={t.red} /></div>
                   <span className="whist-play-name">{t.player === myId ? 'You' : t.player}{suitOf(t) === trump ? ' ⚡' : ''}</span>
                 </div>
