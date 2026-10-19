@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import { RoomProvider, useStorage, useMutation, useOthers, LiveList, LiveObject } from './liveblocks.config'
+import { RoomProvider, useStorage, useMutation, useOthers, useUpdateMyPresence, LiveList, LiveObject } from './liveblocks.config'
+import { useBank, bankToBring, banksInRoom } from './lib/bank'
 import { getSavedName, saveName, saveLastRoom, makeRoomCode } from './lib/identity'
 import { getGame } from './games/registry'
 import { resetTable } from './engine/table'
@@ -36,7 +37,7 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
     if (g.bots) ids.push(...readBotNames(storage)) // 🤖 computer players play again too
     const count = storage.get('lastDealCount') ?? 5
     resetTable(storage)
-    g.setup({ storage, playerIds: ids, count })
+    g.setup({ storage, playerIds: ids, count, banks: banksInRoom(playerName, others) })
   }, [playerName, others])
 
   // Send everyone back to the lobby so the host can pick a different game.
@@ -56,6 +57,14 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
       <HowToPlay game={game} open={helpOpen} onClose={() => setHelpOpen(false)} />
     </GameContext.Provider>
   )
+}
+
+// Keeps this phone's bank in its presence, so the room always knows it.
+function BankPresence() {
+  const bank = useBank()
+  const updateMyPresence = useUpdateMyPresence()
+  useEffect(() => { updateMyPresence({ bank: bankToBring() }) }, [bank, updateMyPresence])
+  return null
 }
 
 // ── Root app ──────────────────────────────────────────────
@@ -103,7 +112,7 @@ function App() {
     <ErrorBoundary>
       <RoomProvider
         id={`windy-${roomCode}`}
-        initialPresence={{ playerId: playerName }}
+        initialPresence={{ playerId: playerName, bank: bankToBring() }}
         initialStorage={{
           deck: new LiveList([]),
           discardPile: new LiveList([]),
@@ -125,6 +134,7 @@ function App() {
         }}
       >
         <ConnectionBanner />
+        <BankPresence />
         {screen === 'lobby'
           ? <Lobby roomCode={roomCode} playerName={playerName} isCreator={isCreator} onChangeName={handleChangeName} onLeave={() => setScreen('landing')} onStart={() => setScreen('game')} />
           : <GameHost playerName={playerName} roomCode={roomCode} isCreator={isCreator} onLeave={() => setScreen('landing')} onExitToLobby={() => setScreen('lobby')} />

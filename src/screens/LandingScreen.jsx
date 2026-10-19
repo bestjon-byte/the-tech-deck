@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useBank, bankToBring, isBroke, FRESH_BANK } from '../lib/bank'
 import { getLastRoom } from '../lib/identity'
 
 // The home screen: Create a game, Join a game by code, or Rejoin the last one.
@@ -42,6 +43,7 @@ export default function LandingScreen({ playerName, onChangeName, onCreate, onJo
           <button className="name-edit-btn" onClick={() => { setNameDraft(playerName); setEditingName(true) }} aria-label="Edit name">✏️</button>
         </p>
       )}
+      <BankPill />
 
       {!showJoin ? (
         <div className="landing-buttons">
@@ -82,3 +84,11 @@ export default function LandingScreen({ playerName, onChangeName, onCreate, onJo
 const BUILT_AT = new Date(import.meta.env.VITE_BUILD_TIME).toLocaleString('en-GB', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
 })
+
+// 💰 Your poker chips, saved on this phone.
+function BankPill() {
+  const bank = useBank() // re-render when it changes
+  if (bank === null) return <p className="bank-pill">💰 You start with {FRESH_BANK.toLocaleString()} poker chips</p>
+  if (isBroke()) return <p className="bank-pill broke">💸 Bust! Fresh {FRESH_BANK.toLocaleString()} chips next game</p>
+  return <p className="bank-pill">💰 Your chips: <b>{bankToBring().toLocaleString()}</b></p>
+}

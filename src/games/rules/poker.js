@@ -132,9 +132,11 @@ export function canAct(pk, p) {
 const stillIn = (pk) => (pk.inHand ?? []).filter((p) => !(pk.folded ?? []).includes(p))
 
 // ── Setting up ───────────────────────────────────────────
-export function setupPoker({ storage, playerIds }) {
+// `banks` = everyone's saved chips (name → chips, from their phones). You sit
+// down with your whole bank; bots, and anyone without one, get START_CHIPS.
+export function setupPoker({ storage, playerIds, banks = {} }) {
   const chips = {}
-  for (const p of playerIds) chips[p] = START_CHIPS
+  for (const p of playerIds) chips[p] = banks[p] > 0 ? Math.floor(banks[p]) : START_CHIPS
   storage.set('poker', new LiveObject({
     chips,
     blinds: START_BLINDS,

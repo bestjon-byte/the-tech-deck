@@ -2863,3 +2863,24 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
 }
 .poker-odds-seg:last-child { border-right: none; }
 .poker-odds-seg span { font-size: 0.66rem; font-weight: 900; color: white; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.6); padding: 0 4px; }
+
+/* 💰 Chip bank */
+.bank-pill {
+  margin: 4px 0 0;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(255,214,10,0.12);
+  border: 1px solid rgba(255,214,10,0.35);
+  color: #ffe58a;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.bank-pill b { color: #FFD60A; }
+.bank-pill.broke { background: rgba(255,55,95,0.14); border-color: rgba(255,55,95,0.4); color: #ffb3c1; }
+.bank-tag {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #FFD60A;
+  white-space: nowrap;
+}

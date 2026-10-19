@@ -24,6 +24,7 @@
 //               ({ storage, playerIds, count }). Deals the cards and sets up any
 //               extra state (turns, books...).
 //   lobbyHint — OPTIONAL (playerCount) => string shown under the buttons.
+//   bank      — OPTIONAL true: players bring their saved 💰 chips (setup also gets `banks`)
 //   rules     — { objective, howTo: [steps], win } shown in the How-to-play pop-up.
 
 import { dealToPlayers } from '../engine/table'
@@ -244,9 +245,10 @@ export const GAMES = [
     deal: { all: true }, // the game deals each hand itself
     setup: setupPoker,
     bots: { max: 8 }, // 🤖 computer players, up to 8 at the table
-    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · ${START_CHIPS} chips each · blinds ${START_BLINDS.small}/${START_BLINDS.big}, doubling every ${BLINDS_UP_EVERY} hands`,
+    bank: true, // 💰 players bring their saved chips (lib/bank.js) — shown in the lobby
+    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · bring your 💰 chips (bots get ${START_CHIPS}) · blinds ${START_BLINDS.small}/${START_BLINDS.big}, doubling every ${BLINDS_UP_EVERY} hands`,
     rules: {
-      objective: `Win everyone's chips! Everyone starts with ${START_CHIPS}.`,
+      objective: `Win everyone's chips! Your chips are saved on your phone after every hand — take them into any room. First game (or gone bust)? The bank gives you ${START_CHIPS}.`,
       howTo: [
         'You get 2 secret cards. 5 shared cards are dealt face up in the middle: 3 (the flop), then 1 (the turn), then 1 (the river).',
         'Before each new card(s) there is a round of betting. On your go: Fold (give up this hand), Check (bet nothing, if nobody has bet), Call (match the bet), or Bet/Raise (put more in).',

@@ -6,6 +6,7 @@ import HowToPlay from '../components/HowToPlay'
 import { useKeepAwake } from '../lib/keepAwake'
 import { useBots, BOT_LEVELS, BOT_NAMES, levelEmoji } from '../engine/bots'
 import { LiveObject } from '../liveblocks.config'
+import { bankToBring, banksInRoom } from '../lib/bank'
 
 // ── Lobby ──────────────────────────────────────────────────
 // Shows the room code, who's here, and (for the host only) the game picker and
@@ -70,18 +71,18 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
 
   // One generic "start" for every game: reset, set the mode, then let the game
   // set itself up (deal cards, start turns, etc.). No per-game code here.
-  const startGame = useMutation(({ storage }, { id, playerIds, count }) => {
+  const startGame = useMutation(({ storage }, { id, playerIds, count, banks }) => {
     resetTable(storage)
     storage.set('gameMode', id)
     storage.set('lastDealCount', count) // remembered so "Play again" deals the same
-    getGame(id).setup({ storage, playerIds, count })
+    getGame(id).setup({ storage, playerIds, count, banks })
     storage.set('gameStarted', true)
   }, [])
 
   function handleStart() {
     const playerIds = [...humanIds, ...(botsPlay ? botNames : [])]
     const count = dealCountFor(selectedGame, playerIds.length, dealCount)
-    startGame({ id: gameId, playerIds, count })
+    startGame({ id: gameId, playerIds, count, banks: banksInRoom(playerName, others) })
     // Navigation happens via the gameStarted effect above, for everyone.
   }
 
@@ -113,6 +114,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
             <>
               {playerName}
               <span className="you-tag">you</span>
+              {selectedGame.bank && <span className="bank-tag">💰 {bankToBring().toLocaleString()}</span>}
               <button
                 className="name-edit-btn"
                 onClick={() => { setNameDraft(playerName); setEditingName(true) }}
@@ -127,6 +129,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
           <div key={o.connectionId} className="player-item">
             <span className="player-dot on" />
             {o.presence.playerId || '...'}
+            {selectedGame.bank && o.presence.bank != null && <span className="bank-tag">💰 {o.presence.bank.toLocaleString()}</span>}
           </div>
         ))}
         {botNames.map((name) => (

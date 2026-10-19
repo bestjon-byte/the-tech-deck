@@ -34,6 +34,7 @@ src/
     keepAwake.js        ← useKeepAwake(): screen wake lock in lobby + games
     sfx.js              ← playSfx('snap') — synthesised sounds (Web Audio, no files) + mute (top bar 🔊)
     looks.js            ← rand(i) (stable "random"), hueOf(name, seat) seat colours
+    bank.js             ← 💰 poker chip bank saved on the phone (localStorage `tech-deck-bank`): bankToBring/setBank/useBank, banksInRoom(me, others)
     motion.js           ← calm mode (✨/🧘 top-bar button): isCalm/setCalm/useCalm, puts `calm` on <html> → App.css stops all animation
   engine/
     turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder
@@ -67,7 +68,7 @@ src/
 | 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s |
 | 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`, `outWith:Name` = the card(s) they went out with); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn → `shed.lastBurn` makes every phone play `BurnFX` 🔥 |
 | 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players); `legalPlays()` lists every legal move → smart highlights |
-| 🤠 Texas Hold'em | 2 hole cards per hand | State in `poker` (chips, bets, committed, board, dealer/sb/bb, result — see top of `rules/poker.js`). Betting + side pots + hand evaluator (`bestHand`) all in `rules/poker.js`; `doAction` for every bet; one phone (`useInCharge` on the dealer) deals the next hand, guarded by `handNo`. All-in with nobody left to bet → phase `runout`: cards face up, live win % (`equity()`, seeded so every phone agrees), and the same phone deals each street on a timer via `runoutStep(handNo, boardLen)` (RUNOUT_MS in the board; drumroll before the river; RIVER MIRACLE! if a 70%+ favourite loses). 1000 chips, blinds 10/20 doubling every 8 hands. Bots: `ai/pokerBot.js` |
+| 🤠 Texas Hold'em | 2 hole cards per hand | State in `poker` (chips, bets, committed, board, dealer/sb/bb, result — see top of `rules/poker.js`). Betting + side pots + hand evaluator (`bestHand`) all in `rules/poker.js`; `doAction` for every bet; one phone (`useInCharge` on the dealer) deals the next hand, guarded by `handNo`. All-in with nobody left to bet → phase `runout`: cards face up, live win % (`equity()`, seeded so every phone agrees), and the same phone deals each street on a timer via `runoutStep(handNo, boardLen)` (RUNOUT_MS in the board; drumroll before the river; RIVER MIRACLE! if a 70%+ favourite loses). Players sit down with their whole 💰 bank (`lib/bank.js`, saved per PHONE): each phone shares it in presence (`bank`, via `BankPresence` in App.jsx), the lobby/Play Again pass `banks` to `setup`, and each phone saves its own stack back after every hand. Broke or new → fresh 1000 (bots always 1000). Blinds 10/20 doubling every 8 hands. Bots: `ai/pokerBot.js` |
 
 Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, **?** in the game's top bar).
 

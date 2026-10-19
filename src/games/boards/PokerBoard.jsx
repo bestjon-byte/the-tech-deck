@@ -15,6 +15,7 @@ import { choosePokerMove } from '../ai/pokerBot'
 import { doAction, nextHand, runoutStep, equity, optionsFor, potOf, bestHand, describeStart } from '../rules/poker'
 import { playSfx } from '../../lib/sfx'
 import { hueOf } from '../../lib/looks'
+import { setBank } from '../../lib/bank'
 
 const NEXT_HAND_MS = { fold: 3500, showdown: 7000 }
 // 🥁 All-in runout: how long to wait (by cards already on the board) before
@@ -107,6 +108,13 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
     return equity(holes, pk.board ?? [], pk.handNo)
   }, [runoutKey]) // eslint-disable-line react-hooks/exhaustive-deps -- runoutKey captures everything that changes the odds
 
+  // 💰 Save my stack to my phone's bank after every hand, so I keep it for the
+  // next game in any room. (Mid-hand, chips in the pot aren't mine yet.)
+  const myStack = pk?.chips?.[myId]
+  useEffect(() => {
+    if ((phase === 'handOver' || phase === 'gameOver') && myStack != null) setBank(myStack)
+  }, [phase, handNo, myStack])
+
   // A new turn or a new hand closes the raise panel.
   const [panelFor, setPanelFor] = useState('')
   const turnKey = `${handNo}-${currentTurn}-${lastActionId}`
@@ -124,7 +132,8 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
     const champ = playerOrder.find((p) => (pk.chips?.[p] ?? 0) > 0) ?? ''
     const ranking = [champ, ...[...(pk.busted ?? [])].reverse()].filter(Boolean)
     const scores = ranking.map((p, i) => ({ name: p, detail: i === 0 ? `💰 ${chips(pk.chips?.[p])}` : `out ${['', '2nd', '3rd'][i] ?? `${i + 1}th`}` }))
-    return <WinnerScreen emoji="🤠" title={`${champ} wins all the chips!`} scores={scores} onLeave={onLeave} />
+    const title = champ === myId ? `You win all the chips — ${chips(pk.chips?.[myId])} saved to your bank! 🤑` : `${champ} wins all the chips!`
+    return <WinnerScreen emoji="🤠" title={title} scores={scores} onLeave={onLeave} />
   }
 
   const board = pk.board ?? []
