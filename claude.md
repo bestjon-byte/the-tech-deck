@@ -10,6 +10,7 @@ Liveblocks. Live at **https://the-tech-deck.vercel.app**.
 - **THE STAGE RULE:** Complete one phase at a time. Write code, explain what it does like he's 11 (he is), and explicitly ask him to test it before moving on.
 - **Roadmap:** `readme.md` has Joshua's original 4-level plan. **Levels 1–3 are done. He's in Level 4 (Custom Actions)** — building a library of card games, working from the todo list.
 - **Todo list:** `src/assets/todo.md`. Check it at the start of every session, tick items off as they're done, add new ideas when Joshua mentions them.
+- **How changes ship (Jon's sessions):** work goes on a `claude/...` branch and is pushed there; nothing goes to `main` (= the live site) until Jon says **"push to main"**. Then fast-forward `main`, lint + build, push, and confirm the live JS bundle contains the new short hash before saying it's live.
 - **Phones only:** The game is only ever *played* on iPhones/iPads (often on mobile data with poor signal). There is never a laptop at the table — so every fix must work on the live site on a phone, and Joshua tests by opening the live site, not localhost.
 
 ## ✅ Start-of-session checklist
@@ -34,7 +35,7 @@ src/
     keepAwake.js        ← useKeepAwake(): screen wake lock in lobby + games
     sfx.js              ← playSfx('snap') — synthesised sounds (Web Audio, no files) + mute (top bar 🔊)
     looks.js            ← rand(i) (stable "random"), hueOf(name, seat) seat colours
-    bank.js             ← 💰 poker chip bank saved on the phone (localStorage `tech-deck-bank`): bankToBring/setBank/useBank, banksInRoom(me, others)
+    bank.js             ← 💰 chip bank saved on the PHONE (localStorage `tech-deck-bank`), used by poker AND playing-for-chips: bankToBring/setBank/useBank, banksInRoom(me, others). Shown on the landing screen
     motion.js           ← calm mode (✨/🧘 top-bar button): isCalm/setCalm/useCalm, puts `calm` on <html> → App.css stops all animation
   engine/
     turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder
@@ -46,12 +47,14 @@ src/
     autoPass.js         ← useAutoPass(): when the current player has no legal move, one phone passes for them after 2.2s
   components/           ← CardFace, CardBack, Hand, Opponent (+CardFan, OpponentBacks), TopBar, TurnBanner,
                           ActionMessage, WinnerScreen, HowToPlay, BurnFX, FXLayer, AutoPassNotice,
-                          ConnectionBanner, ErrorBoundary, GameContext
+                          ConnectionBanner, ErrorBoundary, GameContext (myId, game, isCreator, openHelp, playAgain, chooseGame),
+                          Stakes.jsx (StakesKeeper + StakesSummary — 💰 chips payout)
   screens/              ← NameScreen, LandingScreen (shows version tag), Lobby
   games/
     registry.js         ← THE GAME LIBRARY — one entry per game (lobby + router + rules read it)
     boards/             ← one board component per game
-    rules/              ← per-game setup + pure rule helpers
+    rules/              ← per-game setup + pure rule helpers (poker.js = the whole Hold'em engine)
+    stakesRules.js      ← 💰 each game's play-for-chips payout rules (STAKES.<gameId>)
     ai/                 ← bot brains (bigTwoBot.js, pokerBot.js), e.g. bigTwoBot.js chooseBigTwoMove({ hand, trickType, level… }) → cards or null (pass)
   assets/todo.md        ← Joshua's todo list
 ```
@@ -66,9 +69,9 @@ src/
 | 👏 Snap | whole deck | `snap.winner` claim → pile awarded by the in-charge phone; mis-snap costs 5 cards; if nobody can flip and there's no match, the last flipper keeps the pile (wins) |
 | 🙅 Old Maid | whole deck minus Q♣ | Pairs auto-removed; take a hidden card from next holder |
 | 🔢 Sevens | whole deck | `discardPile` is the table; pass if no move |
-| 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s |
+| 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s; the card winning a trick in progress glows green (WINNING tag, via `whistTrickWinner`) |
 | 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`, `outWith:Name` = the card(s) they went out with); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn → `shed.lastBurn` makes every phone play `BurnFX` 🔥 |
-| 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players); `legalPlays()` lists every legal move → smart highlights |
+| 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players); `legalPlays()` lists every legal move → smart highlights; `leftAtWin` records everyone's cards when the first player goes out (for chips) |
 | 🤠 Texas Hold'em | 2 hole cards per hand | State in `poker` (chips, bets, committed, board, dealer/sb/bb, result — see top of `rules/poker.js`). Betting + side pots + hand evaluator (`bestHand`) all in `rules/poker.js`; `doAction` for every bet; one phone (`useInCharge` on the dealer) deals the next hand, guarded by `handNo`. All-in with nobody left to bet → phase `runout`: cards face up, live win % (`equity()`, seeded so every phone agrees), and the same phone deals each street on a timer via `runoutStep(handNo, boardLen)` (RUNOUT_MS in the board; drumroll before the river; RIVER MIRACLE! if a 70%+ favourite loses). Players sit down with their whole 💰 bank (`lib/bank.js`, saved per PHONE): each phone shares it in presence (`bank`, via `BankPresence` in App.jsx), the lobby/Play Again pass `banks` to `setup`, and each phone saves its own stack back after every hand. Broke or new → fresh 1000 (bots always 1000). Blinds 10/20 doubling every 8 hands. Bots: `ai/pokerBot.js` |
 
 Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, **?** in the game's top bar).
@@ -89,6 +92,7 @@ Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, 
 4. Want computer players? Add `bots: { max: 4 }` to the registry entry, write a brain in `games/ai/`, and in the board call `useBotTurn({ myId, currentTurn, playerOrder, act, active, watch })` with `act` = a `useMutation` that re-checks the turn and plays for the bot (see `BigTwoBoard`). Lobby "Add a computer player" buttons + Play Again pick it up.
 5. Moves should call `announce(storage, 'Sam played 8♥', fx)` (never set `lastAction` by hand). For bling, pass an `fx` (see below). If a player can be stuck with no legal move, add `useAutoPass` + `<AutoPassNotice>` (see Sevens).
 6. Needs its own shared state? Add a `LiveObject` slot to `initialStorage` in `App.jsx` (like `whist`, `shed`, `bigTwo`).
+7. Playable for chips? Add an entry to `games/stakesRules.js` (`summary` + `settle(root)`, points summing to zero) and `stakes: STAKES.mygame` in the registry. Count things during play with `tallyStake(storage, 'key:Name')`.
 
 The lobby button, deal picker, game screen, help pop-up and Play Again all pick it up automatically.
 
@@ -129,11 +133,13 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 - `lastAction` — `LiveObject { message, id, fx }`: the "what just happened" toast + its special effect (write it with `announce()`)
 - `bots` — `LiveObject`: bot name → `'easy' | 'medium' | 'hard'` (host adds/removes in the lobby; only games with `bots` in the registry use them; older rooms may lack it — guard)
 - `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ winner }`, `whist`, `shed`, `bigTwo`, `poker` (per-game `LiveObject`s; `setupPoker` replaces `poker` with a fresh one, so older rooms without it work)
+- `stakes` — `LiveObject { unit, id, result, …tallies }`: playing for chips (`resetStakes` replaces it at every start / Play Again)
+- Presence: `{ playerId, bank }` — `bank` = what that phone would sit down with (kept fresh by `BankPresence` in App.jsx)
 
 ## Screens / Flow
 1. **Name screen** — first launch; name saved as `windy-player-name` (editable later on landing + lobby ✏️)
-2. **Landing** — Create / Join / Rejoin last game (`windy-last-room`); small version tag, e.g. **"Updated 18 Oct, 13:51 · v5c6b488"** at the bottom
-3. **Lobby** — room code, players, swipeable game picker + Start (host only); joiners wait. "Room not found" shows if a joiner sees nobody after 4s
+2. **Landing** — Create / Join / Rejoin last game (`windy-last-room`); 💰 bank pill ("Your chips: 3,450" / bust notice); small version tag, e.g. **"Updated 18 Oct, 13:51 · v5c6b488"** at the bottom
+3. **Lobby** — room code, players, swipeable game picker + Start (host only); joiners wait. "Room not found" shows if a joiner sees nobody after 4s. Host also gets bot buttons (games with `bots`) and **💰 Play for chips? Off/1/5/10/25 per point** (games with `stakes`; resets to Off each time the lobby opens); players' banks show beside names when chips are in play
 4. **Game board** — from the registry; WinnerScreen gives the host Play Again / Choose Game
 - `isCreator` is local App state (`true` from Create). Rejoining via the Rejoin button makes you a non-host, even if you created the room.
 - Screen changes are driven by `useEffect` watching `gameStarted` in storage, so everyone moves together.
@@ -141,6 +147,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 ## Player Identity
 - The player's **name is their ID** (hand keys, turn order, presence `{ playerId: name }`) — two players with the same name would share a hand
 - Survives disconnects: rejoining with the same name gets your cards back
+- 💰 The chip bank belongs to the **phone**, not the name (Jon chose this): renaming keeps it, another device starts fresh at 1,000, clearing Safari website data wipes it
 
 ## 📶 Bad-signal features
 - `ConnectionBanner` (inside RoomProvider): red **"No signal — moves will send when you're back"** while reconnecting; orange **"Sending…"** if a move takes >~1s to sync. Moves made offline are kept on the phone and sent on reconnect.
@@ -156,7 +163,16 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
   curl -s -H "Authorization: Bearer $LIVEBLOCKS_SECRET_KEY" \
     "https://api.liveblocks.io/v2/rooms/windy-ABCD/storage?format=json"
   ```
+- **Testing game logic without phones (no Liveblocks key in cloud sessions):** bundle a test script with rolldown (`node_modules/rolldown`), aliasing `src/liveblocks.config` to a tiny mock with `LiveObject`/`LiveList` classes (`get/set/delete/keys/toJSON`, `get/push/delete/insert/length`). Then call the real `setupX` / mutations on a fake `storage = { get, set }`. Poker was checked this way: 300 random full games (chips conserved, no stuck turns, no refused legal moves), bot-vs-bot win rates, `equity()` vs known odds, and every `stakesRules` payout (sum to zero).
+- **Screenshotting a board without a room:** run Vite with a config whose `resolve.alias` maps `/liveblocks\.config(\.js)?$/` to a mock where `useStorage(sel) => sel(window.__root)`, `useMutation`/`useUpdateMyPresence` are no-ops, `useOthers` returns `[]`, `useStatus` is `'connected'`. Build `window.__root` with the real engine (as above), render the board from a temporary `harness.html`, and screenshot with Playwright at 390×844 and 390×667 (SE). Delete the harness files before committing. Opponents show as "📵 away" in this mode — that's the mock, not a bug.
 - **Big hands:** `.hand-inner { margin: 0 auto }` centres the hand. Don't put `justify-content: center` on the scrolling `.hand-scroll` — it pushes cards off the left edge where they can't be reached.
+
+## 🧯 Known issues / open decisions
+- **Away player stalls poker** — no auto-pass because there's always a legal move. Offered fix: turn timer (auto-check/fold after ~45s). Not built yet.
+- **Poker bots:** Easy is clearly weakest (Medium beats it ~64%); Hard ≈ Medium (Hard just bets bigger + bluffs). Tuning knobs: `STYLE` in `ai/pokerBot.js`.
+- **Chips edge cases:** leaving a room before the game ends means that result never reaches your bank (rejoin while the winner screen is up to collect); banks clamp at 0, so a broke loser costs nothing while the winner is paid in full; bust = fresh 1,000 (free money). Phones on an old version don't pay out — everyone must refresh after a deploy.
+- **Hole cards / hands are only hidden on screen** — all cards are in shared storage (true for every game). Fine for family play, not for real money.
+- Poker runout timings: `RUNOUT_MS` / `DRUMROLL_MS` at the top of `PokerBoard.jsx`; normal (non-all-in) showdowns resolve instantly by design.
 
 ## Liveblocks Badge & Keys
 - The free-plan `#liveblocks-badge` is hidden in `App.css`
