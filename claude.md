@@ -50,12 +50,12 @@ src/
     registry.js         ← THE GAME LIBRARY — one entry per game (lobby + router + rules read it)
     boards/             ← one board component per game
     rules/              ← per-game setup + pure rule helpers
-    ai/                 ← bot brains, e.g. bigTwoBot.js chooseBigTwoMove({ hand, trickType, level… }) → cards or null (pass)
+    ai/                 ← bot brains (bigTwoBot.js, pokerBot.js), e.g. bigTwoBot.js chooseBigTwoMove({ hand, trickType, level… }) → cards or null (pass)
   assets/todo.md        ← Joshua's todo list
 ```
 `src/assets/hero.png`, `react.svg`, `vite.svg` are unused Vite leftovers.
 
-## 🎮 Games (9)
+## 🎮 Games (10)
 | Game | Players' cards | Notes |
 |---|---|---|
 | 🃏 Free Play | host picks 1–13 each | No rules: draw, play, Undo, Shuffle. Uses `useCardTable` + `OpponentBacks` |
@@ -67,6 +67,7 @@ src/
 | 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s |
 | 💩 Shithead | 3 down + 3 up + 3 hand | State in `shed` (per-player keys `fu:Name`, `ready:Name`, `outWith:Name` = the card(s) they went out with); 2 reset, 3 glass, 7 lower, 10/four-of-a-kind burn → `shed.lastBurn` makes every phone play `BurnFX` 🔥 |
 | 2️⃣ Big Two | 13 (4p) / 17 (2–3p) | State in `bigTwo`; 3♦ opens (set aside for 3 players); `legalPlays()` lists every legal move → smart highlights |
+| 🤠 Texas Hold'em | 2 hole cards per hand | State in `poker` (chips, bets, committed, board, dealer/sb/bb, result — see top of `rules/poker.js`). Betting + side pots + hand evaluator (`bestHand`) all in `rules/poker.js`; `doAction` for every bet; one phone (`useInCharge` on the dealer) deals the next hand, guarded by `handNo`. 1000 chips, blinds 10/20 doubling every 8 hands. Bots: `ai/pokerBot.js` |
 
 Every game has "How to play" text in its registry `rules` (ℹ️ in the lobby, **?** in the game's top bar).
 
@@ -122,7 +123,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 - `currentTurn` (name), `playerOrder` (`LiveList` of names)
 - `lastAction` — `LiveObject { message, id, fx }`: the "what just happened" toast + its special effect (write it with `announce()`)
 - `bots` — `LiveObject`: bot name → `'easy' | 'medium' | 'hard'` (host adds/removes in the lobby; only games with `bots` in the registry use them; older rooms may lack it — guard)
-- `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ winner }`, `whist`, `shed`, `bigTwo` (per-game `LiveObject`s)
+- `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ winner }`, `whist`, `shed`, `bigTwo`, `poker` (per-game `LiveObject`s; `setupPoker` replaces `poker` with a fresh one, so older rooms without it work)
 
 ## Screens / Flow
 1. **Name screen** — first launch; name saved as `windy-player-name` (editable later on landing + lobby ✏️)

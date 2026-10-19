@@ -119,6 +119,7 @@ function App() {
           whist: new LiveObject({}),
           shed: new LiveObject({}),
           bigTwo: new LiveObject({}),
+          poker: new LiveObject({}),
           bots: new LiveObject({}), // computer players: name → 'easy' | 'medium' | 'hard'
           lastDealCount: 5,
         }}

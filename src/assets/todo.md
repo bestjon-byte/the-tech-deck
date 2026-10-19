@@ -23,6 +23,8 @@
 - [x] Big Two smart card highlighting — lights up pairs/straights/flushes you can play, then only the cards that finish your combo
 - [x] Big Two AI player 🤖 with difficulty settings — 🙂 Easy / 😎 Medium / 😈 Hard, added from the lobby (brain: `src/games/ai/bigTwoBot.js`)
 - [ ] Make the bots even smarter? (Hard beats Medium 60% of the time) — or add bots to another game
+- [x] Texas Hold'em 🤠 with real betting — chips, blinds, check/call/raise/fold, all-in + side pots, showdown, bots (🙂😎😈)
+- [ ] Poker: playtest! Too slow? Blinds go up too fast/slow? Want a timer so nobody can stall?
 - [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"
 
 ## 🔍 Big review (Oct 2026) — fixes

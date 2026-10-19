@@ -39,6 +39,7 @@ import SevensBoard from './boards/SevensBoard'
 import KnockoutWhistBoard from './boards/KnockoutWhistBoard'
 import ShitheadBoard from './boards/ShitheadBoard'
 import BigTwoBoard from './boards/BigTwoBoard'
+import PokerBoard from './boards/PokerBoard'
 
 import { setupCrazyEights } from './rules/crazyEights'
 import { setupSnap } from './rules/snap'
@@ -47,6 +48,7 @@ import { setupSevens } from './rules/sevens'
 import { setupKnockoutWhist } from './rules/knockoutWhist'
 import { setupShithead } from './rules/shithead'
 import { setupBigTwo } from './rules/bigTwo'
+import { setupPoker, START_CHIPS, START_BLINDS, BLINDS_UP_EVERY } from './rules/poker'
 
 export const GAMES = [
   {
@@ -232,6 +234,29 @@ export const GAMES = [
         'Once everyone else has passed, the table clears and you lead again with anything.',
       ],
       win: 'The first player to empty their hand wins! Play carries on to rank everyone else.',
+    },
+  },
+  {
+    id: 'poker',
+    name: "Texas Hold'em",
+    emoji: '🤠',
+    Board: PokerBoard,
+    deal: { all: true }, // the game deals each hand itself
+    setup: setupPoker,
+    bots: { max: 8 }, // 🤖 computer players, up to 8 at the table
+    lobbyHint: (n) => `${n} player${n === 1 ? '' : 's'} · ${START_CHIPS} chips each · blinds ${START_BLINDS.small}/${START_BLINDS.big}, doubling every ${BLINDS_UP_EVERY} hands`,
+    rules: {
+      objective: `Win everyone's chips! Everyone starts with ${START_CHIPS}.`,
+      howTo: [
+        'You get 2 secret cards. 5 shared cards are dealt face up in the middle: 3 (the flop), then 1 (the turn), then 1 (the river).',
+        'Before each new card(s) there is a round of betting. On your go: Fold (give up this hand), Check (bet nothing, if nobody has bet), Call (match the bet), or Bet/Raise (put more in).',
+        'Two players start each hand with forced bets called blinds (SB = small blind, BB = big blind). The D button (dealer) moves round one seat every hand.',
+        'Make the best 5-card hand from your 2 cards + the 5 shared ones. Best to worst: Royal Flush, Straight Flush, Four of a Kind, Full House, Flush, Straight, Three of a Kind, Two Pair, Pair, High Card.',
+        'Everyone else folds? You win the pot without showing your cards. Otherwise the best hand at the end wins it.',
+        "Can't match a bet? Go ALL IN — you can still win the part of the pot you matched.",
+        'Your hand is shown under the table (e.g. "Pair of Kings") so you always know what you have.',
+      ],
+      win: 'Run out of chips and you are out. The last player with chips wins!',
     },
   },
 ]
