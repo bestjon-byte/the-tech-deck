@@ -105,6 +105,15 @@ const SOUNDS = {
     tone(c, { type: 'square', freq: 1400, to: 90, dur: 0.3, vol: 0.12 })
   },
   whoosh: (c) => noise(c, { dur: 0.4, vol: 0.35, freq: 300, to: 3000, filter: 'bandpass' }),
+  flip: (c) => {
+    noise(c, { dur: 0.08, vol: 0.5, freq: 3000, filter: 'highpass' })
+    tone(c, { type: 'triangle', freq: 300, to: 160, dur: 0.12, vol: 0.2 })
+  },
+  // a snare roll that builds up (for the poker river 🥁)
+  drum: (c) => {
+    for (let i = 0; i < 26; i++) noise(c, { start: i * 0.09, dur: 0.07, vol: 0.12 + i * 0.016, freq: 1800, filter: 'bandpass' })
+    tone(c, { freq: 110, to: 55, start: 2.35, dur: 0.4, vol: 0.5 })
+  },
   burn: (c) => {
     noise(c, { dur: 1.4, vol: 0.6, freq: 500, to: 120 })
     noise(c, { start: 0.1, dur: 1.0, vol: 0.2, freq: 4000, filter: 'highpass' })

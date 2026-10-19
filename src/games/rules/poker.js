@@ -20,7 +20,10 @@ import { announce, clearAnnouncements } from '../../engine/announce'
 //   acted      [names who've acted since the last raise] — a round ends when
 //              everyone who can still bet has acted and matched currentBet
 //   board      the shared cards · street 'preflop' | 'flop' | 'turn' | 'river'
-//   phase      'betting' | 'handOver' | 'gameOver'
+//   phase      'betting' | 'runout' | 'handOver' | 'gameOver'
+//              ('runout' = everyone's all in: cards face up, the board is
+//              dealt one street at a time for maximum drama — see runoutStep)
+//   favourite  during a runout, who was ahead before the river (for RIVER MIRACLE!)
 //   dealer, sb, bb, handNo, blinds { small, big }, busted [names, first out first]
 //   result     what happened at the end of a hand (winners, shown cards…)
 // Hole cards are in `hands` like every other game.
@@ -212,6 +215,7 @@ export function startHand(storage, { first = false } = {}) {
   pkObj.set('street', 'preflop')
   pkObj.set('phase', 'betting')
   pkObj.set('result', null)
+  pkObj.set('favourite', null)
 
   const now = read(storage)
   // First to act: left of the big blind (heads-up that's the dealer/small blind).
@@ -332,10 +336,21 @@ function settleRound(storage, lastId) {
 
   // Round over. If at most one player can still bet, nobody can be raised any
   // more — deal the rest of the board and show down.
-  const bettors = live.filter((p) => canAct(pk, p))
-  if (bettors.length <= 1 || pk.street === 'river') {
-    dealOut(storage, 5)
+  if (pk.street === 'river') {
     finishHand(storage, {})
+    return
+  }
+  // Nobody left who can bet (everyone's all in, or all in but one) → turn the
+  // cards face up and deal the rest slowly. 🥁
+  const bettors = live.filter((p) => canAct(pk, p))
+  if (bettors.length <= 1) {
+    pkObj.set('phase', 'runout')
+    pkObj.set('bets', {})
+    pkObj.set('favourite', null)
+    storage.set('currentTurn', '')
+    announce(storage, `🔥 All in! Cards up: ${live.join(' vs ')}`, {
+      kind: 'slam', tone: 'fire', emoji: '🔥', title: 'SHOWDOWN!', sub: 'No more betting — cards up!', shake: true, sound: 'zap',
+    })
     return
   }
 
@@ -351,6 +366,79 @@ function settleRound(storage, lastId) {
   storage.set('currentTurn', nextSeat(order, pk.dealer, (p) => canAct(pk, p)) ?? '')
   const name = { flop: 'The flop', turn: 'The turn', river: 'The river' }[street]
   announce(storage, `${name}: ${pk.board.slice(street === 'flop' ? 0 : -1).map((c) => c.label).join(' ')}`)
+}
+
+// 🥁 One step of an all-in runout: deal the next street, or (board full) show
+// the result. One phone calls this on a timer; `boardLen` is how many cards it
+// saw on the board, so a second phone asking at the same time does nothing.
+export function runoutStep(storage, handNo, boardLen) {
+  const pkObj = storage.get('poker')
+  const pk = read(storage)
+  if (pk.phase !== 'runout' || pk.handNo !== handNo || (pk.board ?? []).length !== boardLen) return
+  if (boardLen >= 5) {
+    finishHand(storage, {})
+    return
+  }
+  const street = boardLen === 0 ? 'flop' : boardLen === 3 ? 'turn' : 'river'
+  if (street === 'river') {
+    // Remember who's ahead going into the river — if they lose, it's a miracle.
+    const handsObj = storage.get('hands')
+    const holes = Object.fromEntries(stillIn(pk).map((p) => [p, handsObj.get(p) ?? []]))
+    const odds = equity(holes, pk.board ?? [])
+    const [fav, chance] = Object.entries(odds).sort((a, b) => b[1] - a[1])[0] ?? []
+    pkObj.set('favourite', chance >= 0.7 ? { name: fav, chance } : null)
+  }
+  dealOut(storage, { flop: 3, turn: 4, river: 5 }[street])
+  pkObj.set('street', street)
+  const board = pkObj.get('board') ?? []
+  const name = { flop: 'The flop', turn: 'The turn', river: 'The river' }[street]
+  announce(storage, `${name}: ${board.slice(street === 'flop' ? 0 : -1).map((c) => c.label).join(' ')}`)
+}
+
+// ── Win chances 📊 ─────────────────────────────────────────
+// Everyone's chance of winning from here, given their face-up cards and the
+// board so far: { name: 0…1 } (a split counts as a share). With 1–2 cards to
+// come it tries every possibility; before the flop it plays out 1,500 random
+// boards — seeded, so every phone shows exactly the same numbers.
+export function equity(holes, board, seed = 1) {
+  const players = Object.keys(holes)
+  const known = new Set([...board, ...players.flatMap((p) => holes[p])].map((c) => c.label))
+  const rest = buildShuffledDeck().filter((c) => !known.has(c.label)).sort((a, b) => a.id - b.id)
+  const need = 5 - board.length
+  const wins = Object.fromEntries(players.map((p) => [p, 0]))
+  let runs = 0
+  const tally = (extra) => {
+    const full = [...board, ...extra]
+    let best = []
+    let bestScore = null
+    for (const p of players) {
+      const sc = bestHand([...holes[p], ...full]).score
+      const c = bestScore ? compareScores(sc, bestScore) : 1
+      if (c > 0) { best = [p]; bestScore = sc } else if (c === 0) best.push(p)
+    }
+    best.forEach((p) => { wins[p] += 1 / best.length })
+    runs++
+  }
+  if (need <= 0) tally([])
+  else if (need === 1) rest.forEach((c) => tally([c]))
+  else if (need === 2) {
+    for (let i = 0; i < rest.length; i++) for (let j = i + 1; j < rest.length; j++) tally([rest[i], rest[j]])
+  } else {
+    let x = seed * 2654435761 >>> 0 // tiny seeded random numbers (mulberry32)
+    const rnd = () => {
+      x = (x + 0x6D2B79F5) >>> 0
+      let t = Math.imul(x ^ (x >>> 15), 1 | x)
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+    for (let k = 0; k < 1500; k++) {
+      const pick = new Set()
+      while (pick.size < need) pick.add(Math.floor(rnd() * rest.length))
+      tally([...pick].map((i) => rest[i]))
+    }
+  }
+  for (const p of players) wins[p] /= runs || 1
+  return wins
 }
 
 // Deal shared cards until there are `upTo` on the board (burning one first each street).
@@ -441,11 +529,21 @@ function finishHand(storage, { foldWin }) {
       : `🏆 ${top.name} wins ${top.amount} with ${top.hand}`
     const category = HAND_NAMES[hands[top.name].score[0]]
     const big = hands[top.name].score[0] >= 6
-    fx.push({
-      kind: 'slam', tone: big ? 'rainbow' : 'gold', emoji: big ? '🤯' : '🏆', title: split ? 'SPLIT POT!' : `${category.toUpperCase()}!`,
-      cards: top.cards, confetti: big, big, who: top.name, sound: 'fanfare',
-      sub: `${top.name} wins ${top.amount}`, subMe: `You win ${top.amount}! 🤑`,
-    })
+    // Was somebody a big favourite before the river… and lost? 😱
+    const fav = pk.phase === 'runout' ? pk.favourite : null
+    const miracle = fav && !split && !won[fav.name]
+    if (miracle) {
+      fx.push({
+        kind: 'slam', tone: 'rainbow', emoji: '🤯', title: 'RIVER MIRACLE!', cards: top.cards, confetti: true, big: true, shake: true, who: top.name, sound: 'fanfare',
+        sub: `${top.name} had ${Math.round((1 - fav.chance) * 100)}% — and won with ${category}!`, subMe: `You had ${Math.round((1 - fav.chance) * 100)}% and WON! 🍀`,
+      })
+    } else {
+      fx.push({
+        kind: 'slam', tone: big ? 'rainbow' : 'gold', emoji: big ? '🤯' : '🏆', title: split ? 'SPLIT POT!' : `${category.toUpperCase()}!`,
+        cards: top.cards, confetti: big, big, who: top.name, sound: 'fanfare',
+        sub: `${top.name} wins ${top.amount}`, subMe: `You win ${top.amount}! 🤑`,
+      })
+    }
   }
 
   // Anyone with no chips left is out.

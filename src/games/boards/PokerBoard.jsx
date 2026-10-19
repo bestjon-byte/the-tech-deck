@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { useActionMessage } from '../../engine/announce'
 import { useInCharge } from '../../engine/inCharge'
@@ -12,9 +12,15 @@ import Hand from '../../components/Hand'
 import WinnerScreen from '../../components/WinnerScreen'
 import { Opponent } from '../../components/Opponent'
 import { choosePokerMove } from '../ai/pokerBot'
-import { doAction, nextHand, optionsFor, potOf, bestHand, describeStart } from '../rules/poker'
+import { doAction, nextHand, runoutStep, equity, optionsFor, potOf, bestHand, describeStart } from '../rules/poker'
+import { playSfx } from '../../lib/sfx'
+import { hueOf } from '../../lib/looks'
 
 const NEXT_HAND_MS = { fold: 3500, showdown: 7000 }
+// 🥁 All-in runout: how long to wait (by cards already on the board) before
+// the next street comes — the river gets the longest drumroll.
+const RUNOUT_MS = { 0: 3500, 3: 3500, 4: 5000, 5: 3000 }
+const DRUMROLL_MS = 2600 // the drumroll starts this long before the river lands
 const chips = (n) => (n ?? 0).toLocaleString()
 
 // The little D / SB / BB buttons next to a player.
@@ -71,6 +77,36 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
     return () => clearTimeout(t)
   }, [phase, iDeal, handNo, foldWin, dealNext])
 
+  // 🥁 Everyone's all in: one phone deals the rest of the board slowly, one
+  // street at a time, then shows the result. Every phone sees each card land.
+  const boardLen = pk?.board?.length ?? 0
+  const dealStep = useMutation(({ storage }, n, len) => runoutStep(storage, n, len), [])
+  useEffect(() => {
+    if (phase !== 'runout' || !iDeal) return
+    const t = setTimeout(() => dealStep(handNo, boardLen), RUNOUT_MS[boardLen] ?? 3000)
+    return () => clearTimeout(t)
+  }, [phase, iDeal, handNo, boardLen, dealStep])
+
+  // Sounds for the runout: a card flip as each street lands, a drumroll before the river.
+  const [drumroll, setDrumroll] = useState(false)
+  useEffect(() => {
+    if (phase !== 'runout') return
+    if (boardLen > 0) playSfx(boardLen === 5 ? 'slam' : 'flip')
+    if (boardLen !== 4) return
+    const t = setTimeout(() => { setDrumroll(true); playSfx('drum') }, RUNOUT_MS[4] - DRUMROLL_MS)
+    return () => { clearTimeout(t); setDrumroll(false) }
+  }, [phase, boardLen])
+
+  // Everyone's chance of winning, shown live during a runout 📊
+  const runoutKey = phase === 'runout' ? `${handNo}|${(pk?.board ?? []).map((c) => c.label).join(',')}` : ''
+  const odds = useMemo(() => {
+    if (!runoutKey) return null
+    const live = (pk.inHand ?? []).filter((p) => !(pk.folded ?? []).includes(p))
+    const holes = Object.fromEntries(live.map((p) => [p, hands?.[p] ?? []]))
+    if (live.some((p) => holes[p].length !== 2)) return null
+    return equity(holes, pk.board ?? [], pk.handNo)
+  }, [runoutKey]) // eslint-disable-line react-hooks/exhaustive-deps -- runoutKey captures everything that changes the odds
+
   // A new turn or a new hand closes the raise panel.
   const [panelFor, setPanelFor] = useState('')
   const turnKey = `${handNo}-${currentTurn}-${lastActionId}`
@@ -117,8 +153,15 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
   const sendRaise = () => { act({ id: myId, kind: 'raise', amount: raiseTo }); setRaiseTo(null) }
   const raiseWord = (pk.currentBet ?? 0) === 0 ? 'Bet' : 'Raise'
 
+  const runout = phase === 'runout'
+  const pct = (p) => (odds && odds[p] != null ? Math.round(odds[p] * 100) : null)
+  const leader = odds ? Object.keys(odds).sort((a, b) => odds[b] - odds[a])[0] : ''
+  const seatOf = (p) => playerOrder.indexOf(p)
+  const nextLen = board.length === 0 ? 3 : board.length + 1 // the slots the next street will fill
+
   let banner
-  if (handOver) banner = '🃏 Next hand coming up…'
+  if (runout) banner = boardLen === 4 ? '🥁 Here comes the river…' : boardLen === 5 ? '😱 …' : '🔥 ALL IN — cards up!'
+  else if (handOver) banner = '🃏 Next hand coming up…'
   else if (!amIn) banner = '👀 You\'re out — watching'
   else if (iFolded && !isMyTurn) banner = `🏳️ You folded · ${currentTurn ? `${currentTurn}'s turn…` : ''}`
 
@@ -132,7 +175,7 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
         <div className="opponents">
           {others.map((p) => {
             const out = !inHand.includes(p)
-            const shown = result?.shown?.[p]
+            const shown = result?.shown?.[p] ?? (runout && inHand.includes(p) && !folded.includes(p) ? hands[p] : null)
             const theirBet = pk.bets?.[p] ?? 0
             let status = `💰 ${chips(pk.chips?.[p])}`
             if (out) status = (pk.busted ?? []).includes(p) ? '💸 busted' : 'sitting out'
@@ -151,6 +194,8 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
                     <RoleChips pk={pk} p={p} />
                   </div>
                   {shown && result?.hands?.[p] && <span className="poker-hand-name">{result.hands[p]}</span>}
+                  {runout && shown && board.length >= 3 && <span className="poker-hand-name">{bestHand([...shown, ...board])?.name}</span>}
+                  {pct(p) != null && <span className={`poker-odds${p === leader ? ' lead' : ''}`}>{pct(p)}%</span>}
                 </div>
               </Opponent>
             )
@@ -160,11 +205,20 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
 
       <div className="table-center">
         <div className="poker-felt" data-spot="pile">
-          <div className="poker-board-cards">
+          <div className={`poker-board-cards${runout ? ' runout' : ''}`}>
             {[0, 1, 2, 3, 4].map((i) => board[i]
-              ? <div key={board[i].id} className="card-land"><CardFace label={board[i].label} red={board[i].red} highlight={winnerCards.has(board[i].id)} /></div>
-              : <div key={`slot-${i}`} className="poker-slot" />)}
+              ? <div key={board[i].id} className={runout ? `card-flip${i === 4 ? ' river' : ''}` : 'card-land'} style={{ '--i': board.length === 3 && runout ? i : 0 }}><CardFace label={board[i].label} red={board[i].red} highlight={winnerCards.has(board[i].id)} /></div>
+              : <div key={`slot-${i}`} className={`poker-slot${runout && i < nextLen ? ` next${drumroll ? ' drumroll' : ''}` : ''}`}>{runout && i < nextLen ? '?' : ''}</div>)}
           </div>
+          {odds && (
+            <div className="poker-odds-bar" aria-label="Chances of winning">
+              {Object.keys(odds).map((p) => (
+                <div key={p} className="poker-odds-seg" style={{ flexGrow: Math.max(odds[p], 0.001), '--hue': hueOf(p, seatOf(p)) }}>
+                  {odds[p] >= 0.12 && <span>{p === myId ? 'You' : p} {pct(p)}%</span>}
+                </div>
+              ))}
+            </div>
+          )}
           <div className="poker-pot">
             <span className="poker-pot-chip" />
             Pot <b>{chips(pot)}</b>
@@ -190,6 +244,7 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
             <RoleChips pk={pk} p={myId} />
             {myBet > 0 && <span className="poker-bet">bet {chips(myBet)}</span>}
             {myBest && !iFolded && <span className="poker-me-hand">{myBest}</span>}
+            {pct(myId) != null && <span className={`poker-odds${myId === leader ? ' lead' : ''}`}>{pct(myId)}% to win</span>}
             {iFolded && <span className="poker-me-hand">folded</span>}
             {!iFolded && myChips === 0 && <span className="poker-allin-tag">ALL IN</span>}
           </div>
