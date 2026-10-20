@@ -3197,3 +3197,34 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
   .chip-pill { padding: 0 6px; font-size: 0.72rem; }
   .chip-pill-stake { display: none; }
 }
+
+/* ─── Black Jack 🖤 ───────────────────────────────────────── */
+/* Which way play is going (flips with a 7) */
+.bj-direction {
+  width: fit-content;
+  margin: 6px auto 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.28);
+  color: rgba(255,255,255,0.8);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  animation: cardPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bj-direction.reversed { background: rgba(10,132,255,0.35); color: white; }
+/* The pick-up that's waiting for the next player */
+.suit-badge.bj-pickup-badge {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 0 0 3px rgba(255,69,58,0.5), 0 0 18px rgba(255,69,58,0.6);
+}
+.bj-pickup-msg {
+  margin: 0;
+  padding: 0 16px;
+  text-align: center;
+  color: rgba(255,255,255,0.9);
+  font-size: 0.85rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  text-wrap: balance;
+}

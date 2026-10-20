@@ -44,6 +44,7 @@ import KnockoutWhistBoard from './boards/KnockoutWhistBoard'
 import ShitheadBoard from './boards/ShitheadBoard'
 import BigTwoBoard from './boards/BigTwoBoard'
 import PokerBoard from './boards/PokerBoard'
+import BlackJackBoard from './boards/BlackJackBoard'
 
 import { setupCrazyEights } from './rules/crazyEights'
 import { setupSnap } from './rules/snap'
@@ -52,6 +53,7 @@ import { setupSevens } from './rules/sevens'
 import { setupKnockoutWhist } from './rules/knockoutWhist'
 import { setupShithead } from './rules/shithead'
 import { setupBigTwo } from './rules/bigTwo'
+import { setupBlackJack } from './rules/blackJack'
 import { STAKES } from './stakesRules'
 import { setupPoker, START_CHIPS, START_BLINDS, BLINDS_UP_EVERY } from './rules/poker'
 
@@ -116,6 +118,33 @@ export const GAMES = [
         'On your turn, play a card that matches the suit OR number of the top card.',
         "Can't play? Tap the deck to draw — that ends your turn.",
         '8s are wild — play one any time, then choose the next suit everyone must follow.',
+      ],
+      win: 'The first player with an empty hand wins!',
+    },
+  },
+  {
+    id: 'blackjack',
+    stakes: STAKES.blackjack,
+    name: 'Black Jack',
+    emoji: '🖤',
+    Board: BlackJackBoard,
+    deal: { pickable: false, perPlayer: (n) => (n <= 6 ? 7 : 5) },
+    setup: setupBlackJack,
+    bots: { max: 8 }, // 🤖 computer players allowed
+    maxPlayers: 8, // 5 cards each at 7–8 players still leaves a draw pile
+    lobbyHint: (n) => `${n <= 6 ? 7 : 5} cards each · like Uno: match suit or number · 2 = pick up 2 · Black Jack = pick up 7`,
+    rules: {
+      objective: 'Be the first to get rid of all your cards — like Uno, with a normal deck.',
+      howTo: [
+        'On your turn, play a card that matches the suit OR number of the top card. Got more of the same number? Play them all together!',
+        "Can't (or don't want to) play? Draw a card — that ends your turn.",
+        '2 = the next player picks up 2. Black Jack (♠ or ♣) = pick up 7! They can pass it on by playing another 2 or Black Jack — it all adds up (2 + 2 + Black Jack = pick up 11).',
+        'Red Jack (♥ or ♦) cancels a pick-up that\'s coming at you. With no pick-up it\'s just a normal Jack.',
+        '3 is invisible — play it on anything, and the card under it still counts.',
+        '7 reverses the direction of play (with 2 players you go again).',
+        '8 makes the next player miss a go.',
+        'Ace is wild — play it on anything and choose the next suit.',
+        'With a pick-up coming at you, you can ONLY play a 2 or a Jack — otherwise you pick them all up.',
       ],
       win: 'The first player with an empty hand wins!',
     },

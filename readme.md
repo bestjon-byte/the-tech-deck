@@ -37,4 +37,4 @@ This is where the multiplayer magic happens. You will tell Claude to link the ca
 ### ⚙️ Level 4: Custom Actions ← YOU ARE HERE
 Once the basic game works, you can add your favorite custom actions! Add a button to shuffle the discard pile, let players pick up from the discard pile, and more.
 
-So far that's grown into a whole library of 10 games — Free Play, Go Fish, Crazy Eights, Snap, Old Maid, Sevens, Knockout Whist, Shithead, Big Two and Texas Hold'em 🤠 (with real betting) — playable at **https://the-tech-deck.vercel.app**. You can play any of them for 💰 chips that you keep on your phone between games. The todo list lives in `src/assets/todo.md`.
+So far that's grown into a whole library of 11 games — Free Play, Go Fish, Crazy Eights, Black Jack 🖤, Snap, Old Maid, Sevens, Knockout Whist, Shithead, Big Two and Texas Hold'em 🤠 (with real betting) — playable at **https://the-tech-deck.vercel.app**. You can play any of them for 💰 chips that you keep on your phone between games. The todo list lives in `src/assets/todo.md`.

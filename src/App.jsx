@@ -140,6 +140,7 @@ function App() {
           shed: new LiveObject({}),
           bigTwo: new LiveObject({}),
           poker: new LiveObject({}),
+          blackJack: new LiveObject({}),
           watch: new LiveObject({}), // 👀 spectator requests (engine/spectate.js)
           stakes: new LiveObject({ unit: 0, id: '', result: null }), // 💰 playing for chips (engine/stakes.js)
           bots: new LiveObject({}), // computer players: name → 'easy' | 'medium' | 'hard'

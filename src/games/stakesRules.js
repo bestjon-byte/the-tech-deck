@@ -1,5 +1,6 @@
 import { rankOf } from '../lib/cards'
 import { payTo, tallyOf } from '../engine/stakes'
+import { cardPoints } from './rules/blackJack'
 
 // ── 💰 What each game pays out when played for chips ───────
 // Every entry: summary (the rules in words) + settle(root) → null while the
@@ -117,6 +118,25 @@ export const STAKES = {
         const raw = handOf(root, p).reduce((s, c) => s + cardPts(c), 0)
         const n = Math.ceil(raw / 10)
         lines.push(`${p}: ${raw} card points = ${n}`)
+        return n
+      })
+      return { points, lines }
+    },
+  },
+
+  // 🖤 Losers pay the winner for every card stuck in their hand — magic cards
+  // cost more, and getting caught with a Black Jack really hurts.
+  blackjack: {
+    summary: ['Losers pay the winner 1 point per card left in their hand', 'Magic cards (2, 3, 7, 8, Red Jack, Ace) = 2 · Black Jack = 5'],
+    settle(root) {
+      const all = order(root)
+      const winner = all.find((p) => handOf(root, p).length === 0)
+      if (!winner || all.length < 2) return null
+      const lines = []
+      const points = payTo(winner, all, (p) => {
+        const hand = handOf(root, p)
+        const n = hand.reduce((s, c) => s + cardPoints(c), 0)
+        lines.push(`${p}: ${plural(hand.length, 'card')} = ${n}`)
         return n
       })
       return { points, lines }
