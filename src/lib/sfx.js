@@ -1,6 +1,7 @@
 // ── Sound effects 🔊 ───────────────────────────────────────
 // Every sound is made on the spot by the phone's own synthesiser (Web Audio),
-// so there are no sound files to download on bad signal.
+// so there are no sound files to download on bad signal — except one: the
+// 🎙️ "We have a winner!" voice (a tiny 13KB clip, fetched after your first tap).
 //   playSfx('snap')   — play a sound (does nothing when muted)
 //   isMuted() / setMuted(true) — the 🔊/🔇 button in the top bar
 // iPhones only allow sound after the first tap, so we "unlock" audio on the
@@ -32,6 +33,7 @@ if (typeof window !== 'undefined') {
       s.connect(c.destination)
       s.start(0)
     }
+    loadClip('winner') // fetch the voice now, so it's ready when someone wins
     window.removeEventListener('touchend', unlock)
     window.removeEventListener('click', unlock)
   }
@@ -121,11 +123,48 @@ const SOUNDS = {
   },
 }
 
+// 🎙️ Recorded clips in public/sounds. The winner voice is a British game-show
+// host made with Piper text-to-speech (voice: en_GB-northern_english_male,
+// CC BY-SA 4.0) plus a bit of studio echo.
+const CLIPS = { winner: '/sounds/we-have-a-winner.mp3' }
+const clips = {}
+function loadClip(name) {
+  const c = audio()
+  if (!c) return Promise.resolve(null)
+  clips[name] ??= fetch(CLIPS[name])
+    .then((r) => r.arrayBuffer())
+    .then((data) => new Promise((ok, fail) => c.decodeAudioData(data, ok, fail))) // callback form works on older iPhones too
+    .catch(() => { delete clips[name]; return null })
+  return clips[name]
+}
+function playBuffer(c, buf) {
+  const src = c.createBufferSource()
+  src.buffer = buf
+  src.connect(c.destination)
+  src.start(0)
+}
+
+// "We have a winner!" then the fanfare. If the voice hasn't arrived yet (bad
+// signal), the fanfare plays straight away and the voice joins if it turns up soon.
+function playWinner(c) {
+  const asked = Date.now()
+  let fanfareDone = false
+  const fanfare = () => { if (!fanfareDone && !muted) { fanfareDone = true; SOUNDS.fanfare(c) } }
+  const timer = setTimeout(fanfare, 250)
+  loadClip('winner').then((buf) => {
+    if (!buf || muted || Date.now() - asked > 3000) return fanfare()
+    if (!fanfareDone) { clearTimeout(timer); setTimeout(fanfare, buf.duration * 1000 - 300) }
+    playBuffer(c, buf)
+  })
+}
+
 export function playSfx(name) {
   if (muted) return
   try {
     const c = audio()
-    if (c) SOUNDS[name]?.(c)
+    if (!c) return
+    if (name === 'winner') playWinner(c)
+    else SOUNDS[name]?.(c)
   } catch { /* sound is a bonus — never break the game for it */ }
 }
 

@@ -14,7 +14,7 @@ import { StakesSummary } from './Stakes'
 export default function WinnerScreen({ emoji = '🏆', title, scores, onLeave, rain }) {
   const ctx = useContext(GameContext)
   const calm = useCalm()
-  useEffect(() => { playSfx('fanfare') }, [])
+  useEffect(() => { playSfx('winner') }, []) // 🎙️ "We have a winner!" + fanfare
   return (
     <div className="lobby winner-screen">
       <Confetti count={rain ? 26 : 70} emoji={rain} loop />

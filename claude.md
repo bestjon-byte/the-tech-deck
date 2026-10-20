@@ -10,7 +10,7 @@ Liveblocks. Live at **https://the-tech-deck.vercel.app**.
 - **THE STAGE RULE:** Complete one phase at a time. Write code, explain what it does like he's 11 (he is), and explicitly ask him to test it before moving on.
 - **Roadmap:** `readme.md` has Joshua's original 4-level plan. **Levels 1–3 are done. He's in Level 4 (Custom Actions)** — building a library of card games, working from the todo list.
 - **Todo list:** `src/assets/todo.md`. Check it at the start of every session, tick items off as they're done, add new ideas when Joshua mentions them.
-- **How changes ship (Jon's sessions):** work goes on a `claude/...` branch and is pushed there; nothing goes to `main` (= the live site) until Jon says **"push to main"**. Then fast-forward `main`, lint + build, push, and confirm the live JS bundle contains the new short hash before saying it's live.
+- **How changes ship (Jon's sessions):** work goes on a `claude/...` branch. **When a piece of work is finished and there are no unanswered questions, push it straight to `main` (= the live site) — don't wait to be asked.** Lint + build + test first, then fast-forward `main` and push, confirm the live site shows the new short hash, and **finish by telling Jon the new build reference** (the short hash on the landing screen, e.g. `v54598c5`) so he can check the phones are on it. If there IS an open question that changes what gets built, push the branch only and ask.
 - **Phones only:** The game is only ever *played* on iPhones/iPads (often on mobile data with poor signal). There is never a laptop at the table — so every fix must work on the live site on a phone, and Joshua tests by opening the live site, not localhost.
 
 ## ✅ Start-of-session checklist
@@ -33,7 +33,7 @@ src/
     cards.js            ← SUITS/VALUES, buildShuffledDeck, sortCards, rankOf/suitOf
     identity.js         ← localStorage name + last room, makeRoomCode
     keepAwake.js        ← useKeepAwake(): screen wake lock in lobby + games
-    sfx.js              ← playSfx('snap') — synthesised sounds (Web Audio, no files) + mute (top bar 🔊)
+    sfx.js              ← playSfx('snap') — synthesised sounds (Web Audio) + mute (top bar 🔊). One recorded clip: playSfx('winner') = 🎙️ British "We have a winner!" (public/sounds, made with Piper TTS) + fanfare, on every WinnerScreen
     looks.js            ← rand(i) (stable "random"), hueOf(name, seat) seat colours
     bank.js             ← 💰 chip bank saved on the PHONE (localStorage `tech-deck-bank`), used by poker AND playing-for-chips: bankToBring/setBank/useBank, banksInRoom(me, others). Shown on the landing screen
     motion.js           ← calm mode (✨/🧘 top-bar button): isCalm/setCalm/useCalm, puts `calm` on <html> → App.css stops all animation
@@ -168,7 +168,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 
 ## 🧪 Testing & debugging
 - **Which version is a phone on?** The landing screen's version tag (Vite `define` in `vite.config.js`, using `VERCEL_GIT_COMMIT_SHA` on Vercel or `git rev-parse` locally). To update a home-screen app: swipe it away in the app switcher, then reopen (there's no service worker; HTML is `must-revalidate`).
-- **After pushing:** check the live landing page shows the new short commit hash (deploys take ~15–30s), then ask Joshua to test on the phones.
+- **After pushing to main:** check the live landing page shows the new short commit hash (deploys take ~15–30s), tell Jon that build reference, then ask Joshua to test on the phones.
 - **Two-player testing on a laptop:** two browser contexts (e.g. Playwright `browser.newContext()`) at 390×844, one creates a room, the other joins. Use `vite preview` (production build) rather than `npm run dev` when cutting connections — the dev server's live-reload socket reloads the page.
 - **Peek at a room's saved state** (secret key is in `.env.local`):
   ```bash

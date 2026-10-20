@@ -37,6 +37,7 @@
 - [ ] Poker: make the 😈 Hard bot actually harder than 😎 Medium
 - [ ] Chips: playtest the payouts at the table — is Big Two's ×3 ×2 too brutal? Should losing be capped at what you have?
 - [x] Black Jack 🖤 (Uno with normal cards): 2 = pick up 2, Black Jack = pick up 7, Red Jack cancels, 3 invisible, 7 reverses, 8 misses a go, Ace changes suit — with 🙂😎😈 bots and chips
+- [x] 🎙️ "We have a winner!" in a British game-show voice when anyone wins (Joshua's idea!)
 - [ ] Black Jack: playtest! House rules to decide — can you finish on a magic card? Should an 8 be answerable with another 8? Penalty for not saying "last card"?
 - [ ] More ideas: War, Old Maid variants, Spoons, Crazy Eights "draw until you can play"
 
