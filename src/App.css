@@ -2725,13 +2725,21 @@ body.fx-shake .game-board {
   .shed-pair > .card { top: 18px; }
 }
 
+/* Normal phones (375–390px): tighten the top bar so 💰 chips + room code fit */
+@media (max-width: 400px) {
+  .top-bar { padding-left: 10px; padding-right: 10px; }
+  .top-bar-right { gap: 5px; }
+  .help-btn { width: 34px; height: 34px; }
+}
+
 /* Narrow phones (320px): squeeze the top bar so the room code stays on screen */
 @media (max-width: 359px) {
-  .top-bar { padding-left: 10px; padding-right: 10px; }
-  .top-bar-right { gap: 4px; }
-  .help-btn { width: 32px; height: 32px; }
-  .leave-btn { padding: 8px 10px; }
-  .game-code { padding: 7px 7px; letter-spacing: 0.04em; }
+  .top-bar-right { gap: 3px; }
+  .help-btn { width: 30px; height: 30px; font-size: 0.9rem; }
+  .leave-btn { padding: 8px 8px; }
+  .game-code { padding: 7px 5px; letter-spacing: 0.04em; }
+  .chips-pill { padding: 2px 6px; }
+  .chips-total { font-size: 0.72rem; }
 }
 
 /* 🧘 Calm mode (✨ button in the top bar): nothing moves, flashes or shakes.
@@ -3022,16 +3030,48 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
   text-align: left;
   line-height: 1.35;
 }
-.stakes-badge {
-  white-space: nowrap;
+.chips-pill {
+  position: relative;
   flex-shrink: 0;
-  padding: 3px 8px;
+  min-height: 36px;
+  padding: 3px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  background: rgba(255,214,10,0.16);
+  background: rgba(255,214,10,0.14);
   border: 1px solid rgba(255,214,10,0.45);
   color: #FFD60A;
-  font-size: 0.75rem;
-  font-weight: 800;
+  white-space: nowrap;
+  line-height: 1.1;
+  transition: background 0.3s, border-color 0.3s;
+}
+.chips-total { font-size: 0.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.chips-stake { font-size: 0.6rem; font-weight: 700; color: #ffe58a; opacity: 0.85; }
+.chips-pill.up { background: rgba(48,209,88,0.22); border-color: rgba(48,209,88,0.7); }
+.chips-pill.down { background: rgba(255,55,95,0.2); border-color: rgba(255,55,95,0.6); }
+.chips-change {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: white;
+  pointer-events: none;
+  animation: chipsChange 2.2s ease forwards;
+}
+.chips-pill.up .chips-change { background: #30D158; }
+.chips-pill.down .chips-change { background: #FF375F; }
+@keyframes chipsChange {
+  0% { opacity: 0; transform: translate(-50%, -6px) scale(0.6); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
+  20% { transform: translate(-50%, 0) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, 6px); }
 }
 .stakes-summary {
   width: min(100%, 320px);

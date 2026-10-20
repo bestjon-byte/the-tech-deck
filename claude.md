@@ -35,7 +35,7 @@ src/
     keepAwake.js        ← useKeepAwake(): screen wake lock in lobby + games
     sfx.js              ← playSfx('snap') — synthesised sounds (Web Audio, no files) + mute (top bar 🔊)
     looks.js            ← rand(i) (stable "random"), hueOf(name, seat) seat colours
-    bank.js             ← 💰 chip bank saved on the PHONE (localStorage `tech-deck-bank`), used by poker AND playing-for-chips: bankToBring/setBank/useBank, banksInRoom(me, others). Shown on the landing screen
+    bank.js             ← 💰 chip bank saved on the PHONE (localStorage `tech-deck-bank`), used by poker AND playing-for-chips: bankToBring/setBank/useBank, banksInRoom(me, others). Shown on the landing screen and in every game's top bar (`ChipsPill` in TopBar.jsx)
     motion.js           ← calm mode (✨/🧘 top-bar button): isCalm/setCalm/useCalm, puts `calm` on <html> → App.css stops all animation
   engine/
     turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder
@@ -129,6 +129,7 @@ Opponent seats have `data-seat={name}` so effects can find them. Snap triggers i
 - `@media (max-height: 720px)` squeezes things for iPhone SE/mini (smaller hand cards, piles, tableau…). It only hides card-back fans in seats (`.seat-extra .opponent-cards`) — never game info like Shithead face-up cards or poker seats.
 - Sort pills (`.sort-group .sort-btn`) never wrap or change width when lit; `.hand-hint` wraps balanced. Keep it that way — a wrapping Sort row made the hand ~80px taller and buried the table.
 - Shithead: each face-up card sits on its face-down card (`.shed-pair`), so your table cards take one row.
+- **Top bar** (`TopBar.jsx`): Leave · 🔊 · ✨ · ? · 💰 chips pill · room code. The `ChipsPill` shows your bank live (+/− pops out when a payout lands; stake per point underneath when playing for chips; hidden in poker, whose dock shows your stack). It's tight on phones — `@media (max-width: 400px)` / `(max-width: 359px)` shrink the gaps/buttons, and Leave's confirm says "Leave?" so it doesn't get wider. Checked to fit at 320/375/390px up to 99,999 chips (bigger shows as 123k / 1.2m). Adding another top-bar button means re-checking that.
 - Registry `maxPlayers` (Big Two: 4) disables Start in the lobby when the room has too many.
 
 ## Liveblocks Shared State (storage)
