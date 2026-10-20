@@ -57,5 +57,6 @@
 - [x] Sort your hand by number (1 2 3) OR by suit (♠♥♣♦) — your phone remembers which; Aces sort high in Shithead + Whist
 - [x] Shithead: see the card each player went out with (big I'M OUT! show, on their seat, and on the winner screen)
 - [x] Knockout Whist: the card winning the trick so far glows green with a WINNING tag
+- [x] Knockout Whist: the trump picker sees their new hand BEFORE choosing trumps (the next round is dealt first)
 - [x] Shithead: 3s look like real glass, and played 3s sit askew on the pile so you can read the card underneath
 

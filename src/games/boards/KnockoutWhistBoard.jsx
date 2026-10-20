@@ -12,7 +12,7 @@ import { Opponent } from '../../components/Opponent'
 import { useInCharge } from '../../engine/inCharge'
 import {
   WHIST_SUITS, cardsForRound, legalWhistPlay, whistTrickWinner,
-  nextWhistActor, nextLeaderAfter, endWhistRound, dealWhistRound, cardValue,
+  nextWhistActor, nextLeaderAfter, endWhistRound, cardValue,
 } from '../rules/knockoutWhist'
 
 const sortAcesHigh = (cards) => sortByValue(cards, cardValue)
@@ -145,16 +145,10 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
     const w = storage.get('whist')
     if (w.get('phase') !== 'pickTrump') return
     if (w.get('trumpPicker') !== id) return
+    // The hands were already dealt at the end of the last round (so the picker
+    // could see theirs) — just set trumps and start play.
     const seating = w.get('seating') ?? []
-    const alive = w.get('alive') ?? []
-    const { tricksWon } = dealWhistRound(storage, { seating, alive, round: w.get('round'), dogs: w.get('dogs') ?? [], flip: false })
     w.set('trump', suit)
-    w.set('trumpCardLabel', '')
-    w.set('tricksWon', tricksWon)
-    w.set('trick', [])
-    w.set('leadSuit', '')
-    w.set('trickWinner', '')
-    w.set('trickSkips', [])
     w.set('leader', id)
     w.set('phase', 'play')
     const order = storage.get('playerOrder')
@@ -216,7 +210,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
           <p className="ask-label">Round {round} · {cardsForRound(round)} card{cardsForRound(round) === 1 ? '' : 's'} each</p>
           {iPick ? (
             <div className="suit-picker">
-              <span className="ask-label">You won the most — choose trumps</span>
+              <span className="ask-label">You won the most — look at your new hand and choose trumps</span>
               <div className="suit-choices">
                 {WHIST_SUITS.map((s) => (
                   <button key={s} className={`suit-choice ${isRed(s) ? 'red' : ''}`} onClick={() => pickTrump({ id: myId, suit: s })}>{s}</button>
@@ -234,6 +228,12 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
             ))}
           </div>
         </div>
+        <Hand
+          cards={myHand}
+          showSort
+          sortWith={sortAcesHigh}
+          hint={iPick ? "Your new hand — pick the suit you're strongest in" : undefined}
+        />
       </div>
     )
   }

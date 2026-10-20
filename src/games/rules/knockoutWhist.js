@@ -8,7 +8,8 @@ import { clearAnnouncements } from '../../engine/announce'
 // card of the led suit wins — unless someone trumps. Win at least one trick or
 // you're knocked out; the very first player knocked out gets one "dog's life".
 // Hands shrink by one card every round (7, 6, 5 … 1) and the last player
-// standing wins. The winner of each round chooses trumps for the next.
+// standing wins. The winner of each round sees their new hand, then chooses
+// trumps for it.
 
 // Whist ranks the Ace HIGH, so it gets its own order (separate from cards.js,
 // where Ace is low for sorting).
@@ -164,7 +165,17 @@ export function endWhistRound(storage) {
     const t = tricksWon[p] ?? 0
     if (t > bestTricks) { bestTricks = t; picker = p }
   }
+  // Deal the next hand now, so the picker can look at their cards before
+  // choosing trumps (play starts once they've picked).
+  const round = (whist.get('round') ?? 1) + 1
+  const { tricksWon: freshTricks } = dealWhistRound(storage, { seating, alive: newAlive, round, dogs: newDogs, flip: false })
+  whist.set('tricksWon', freshTricks)
+  whist.set('trick', [])
+  whist.set('leadSuit', '')
+  whist.set('trickWinner', '')
+  whist.set('trickSkips', [])
+  whist.set('trumpCardLabel', '')
   whist.set('trumpPicker', picker)
-  whist.set('round', (whist.get('round') ?? 1) + 1)
+  whist.set('round', round)
   whist.set('phase', 'pickTrump')
 }
