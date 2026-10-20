@@ -7,6 +7,7 @@
 import { useMutation } from '../liveblocks.config'
 import { buildShuffledDeck } from '../lib/cards'
 import { clearAnnouncements } from './announce'
+import { resetWatch } from './spectate'
 
 // Clear the table back to empty. Run this first when (re)starting a game.
 export function resetTable(storage) {
@@ -17,6 +18,7 @@ export function resetTable(storage) {
   while (discard.length > 0) discard.delete(0)
   while (order.length > 0) order.delete(0)
   clearAnnouncements(storage) // no leftover message or effect from the last game
+  resetWatch(storage) // nobody's still watching anybody from last game
 }
 
 // Deal `count` cards to each player. Whatever is left becomes the draw pile.

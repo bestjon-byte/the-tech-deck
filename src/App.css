@@ -3047,3 +3047,102 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
 .stakes-row.up b { color: #30D158; }
 .stakes-row.down b { color: #FF6B81; }
 .stakes-lines { margin-top: 6px; font-size: 0.7rem; color: rgba(255,255,255,0.6); line-height: 1.35; text-align: left; }
+
+/* ─── 👀 Spectator mode ───────────────────────────────────── */
+.spect-pill, .spect-pick, .spect-panel {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 7000;
+  width: min(calc(100vw - 24px), 420px);
+  border-radius: 18px;
+  background: rgba(8,24,40,0.94);
+  border: 1px solid rgba(100,210,255,0.45);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  color: white;
+}
+.spect-pill {
+  width: auto;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.spect-pill:has(> .spect-btn:only-child) { padding: 6px; }
+.spect-btn {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  color: white;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.spect-btn.yes { background: #64D2FF; color: #04243a; }
+.spect-btn.no { background: rgba(255,255,255,0.14); }
+.spect-stop {
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: transparent;
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.spect-pick { padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.spect-pick-title { font-weight: 800; }
+.spect-pick-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.spect-panel { padding: 10px 10px 12px; }
+.spect-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.9rem; margin-bottom: 8px; }
+.spect-panel-head b { color: #64D2FF; }
+.spect-cards { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.spect-cards::-webkit-scrollbar { display: none; }
+.spect-empty { font-size: 0.8rem; color: rgba(255,255,255,0.6); padding: 8px; }
+
+/* Someone asks to watch YOUR hand — a card near the top that doesn't block play */
+.spect-ask {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(58px + env(safe-area-inset-top, 0px));
+  z-index: 7500;
+  width: min(calc(100vw - 24px), 380px);
+  padding: 12px;
+  border-radius: 18px;
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.5);
+  animation: fxPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.spect-ask-text { font-size: 0.95rem; text-align: center; margin-bottom: 10px; }
+.spect-ask-btns { display: flex; gap: 8px; }
+.spect-ask-btns .spect-btn { flex: 1; }
+.spect-ask .spect-btn.no { background: #e2e8f0; color: #0f172a; }
+.spect-ask .spect-btn.yes { background: #0A84FF; color: white; }
+.spect-watchers {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(58px + env(safe-area-inset-top, 0px));
+  z-index: 7500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  padding: 4px 4px 4px 12px;
+  border-radius: 999px;
+  background: rgba(8,24,40,0.9);
+  border: 1px solid rgba(100,210,255,0.4);
+  color: white;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}

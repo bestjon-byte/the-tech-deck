@@ -44,16 +44,18 @@ src/
     bots.js             ← 🤖 computer players: useBots, useBotTurn (one human phone moves for the bots), BOT_LEVELS
     announce.js         ← announce(storage, message, fx) — the toast + special effect for a move; useActionMessage()
     stakes.js           ← 💰 playing for chips: resetStakes, tallyStake (count passes/mis-snaps), payTo; StakesKeeper/StakesSummary live in components/Stakes.jsx
+    spectate.js         ← 👀 spectator requests: requestWatch / answerWatch / stopWatching / watchState (storage `watch`)
     autoPass.js         ← useAutoPass(): when the current player has no legal move, one phone passes for them after 2.2s
   components/           ← CardFace, CardBack, Hand, Opponent (+CardFan, OpponentBacks), TopBar, TurnBanner,
                           ActionMessage, WinnerScreen, HowToPlay, BurnFX, FXLayer, AutoPassNotice,
                           ConnectionBanner, ErrorBoundary, GameContext (myId, game, isCreator, openHelp, playAgain, chooseGame),
-                          Stakes.jsx (StakesKeeper + StakesSummary — 💰 chips payout)
+                          Stakes.jsx (StakesKeeper + StakesSummary — 💰 chips payout), Spectate.jsx (👀 spectator mode)
   screens/              ← NameScreen, LandingScreen (shows version tag), Lobby
   games/
     registry.js         ← THE GAME LIBRARY — one entry per game (lobby + router + rules read it)
     boards/             ← one board component per game
     rules/              ← per-game setup + pure rule helpers (poker.js = the whole Hold'em engine)
+    spectateRules.js    ← 👀 who counts as "out" per game (isOut) + isOver
     stakesRules.js      ← 💰 each game's play-for-chips payout rules (STAKES.<gameId>)
     ai/                 ← bot brains (bigTwoBot.js, pokerBot.js), e.g. bigTwoBot.js chooseBigTwoMove({ hand, trickType, level… }) → cards or null (pass)
   assets/todo.md        ← Joshua's todo list
@@ -99,6 +101,9 @@ The lobby button, deal picker, game screen, help pop-up and Play Again all pick 
 ## 💰 Playing for chips (stakes)
 Host picks Off / 1 / 5 / 10 / 25 chips per point in the lobby (games with `stakes` in the registry; not Free Play or poker). Each game's payout rules are in `games/stakesRules.js` — `settle(root)` returns null until the game is over, then `{ points, lines }` (points must sum to zero). `StakesKeeper` (in GameHost): one phone saves `stakes.result`, then every phone adds its own share to its bank once (game id remembered in localStorage `tech-deck-settled`). `WinnerScreen` shows the payout. Losses are capped at each loser's bank (`capToBanks` in `engine/stakes.js`) and the winners share only what was really paid, so chips are never made from nothing (bots pay in full). Big Two records `bigTwo.leftAtWin` when the first player goes out; Snap/Sevens count `miss:Name` / `pass:Name` with `tallyStake`.
 
+## 👀 Spectator mode
+Mounted once in GameHost (`components/Spectate.jsx`), so it works in every game. A player who's out (`games/spectateRules.js`: Shithead/Big Two finished, Whist knocked out, Hold'em busted, Old Maid/Snap empty hand, Go Fish empty hand + empty pond — or anyone in the room who isn't playing) gets a **👀 Watch a hand** button → picks a player → that player gets a "wants to watch your hand" card with **Let them watch / No**. Approved: the viewer sees that player's `hands[name]` live at the bottom and their seat glows blue; the player sees "👀 Joshua is watching · Stop". Bots never need asking. Storage `watch`: `req:Viewer` (viewer writes) / `ans:Viewer` (target writes, matched by request id); `resetTable` wipes it each game. Sevens and Crazy Eights end when the first player goes out, so only room watchers can spectate there. New game where players drop out? Add an `isOut` rule.
+
 ## ⚠️ Multiplayer rules (read before touching game logic)
 Liveblocks resolves clashes by **last write wins, per key**. Two phones changing the same key at nearly the same moment → one change is silently lost. Poor signal makes this much more likely. So:
 1. **Never re-save a whole hand from a phone that isn't changing it.** Sorting is display-only: `Hand` has its own Sort buttons — by number or by suit (`showSort`, optional `sortWith` = the game's number order; mode saved in localStorage `tech-deck-sort`) and never writes to storage. (Sort used to write the hand and copied cards in Old Maid / Go Fish.)
@@ -136,6 +141,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 - `lastAction` — `LiveObject { message, id, fx }`: the "what just happened" toast + its special effect (write it with `announce()`)
 - `bots` — `LiveObject`: bot name → `'easy' | 'medium' | 'hard'` (host adds/removes in the lobby; only games with `bots` in the registry use them; older rooms may lack it — guard)
 - `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ winner }`, `whist`, `shed`, `bigTwo`, `poker` (per-game `LiveObject`s; `setupPoker` replaces `poker` with a fresh one, so older rooms without it work)
+- `watch` — `LiveObject` of spectator requests/answers (see 👀 Spectator mode)
 - `stakes` — `LiveObject { unit, id, result, …tallies }`: playing for chips (`resetStakes` replaces it at every start / Play Again)
 - Presence: `{ playerId, bank }` — `bank` = what that phone would sit down with (kept fresh by `BankPresence` in App.jsx)
 

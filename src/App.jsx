@@ -13,6 +13,7 @@ import { readBotNames } from './engine/bots'
 import HowToPlay from './components/HowToPlay'
 import FXLayer from './components/FXLayer'
 import { StakesKeeper } from './components/Stakes'
+import Spectate from './components/Spectate'
 import { resetStakes, currentUnit } from './engine/stakes'
 import NameScreen from './screens/NameScreen'
 import LandingScreen from './screens/LandingScreen'
@@ -58,6 +59,7 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
       <Board playerName={playerName} roomCode={roomCode} onLeave={onLeave} />
       <FXLayer myId={playerName} />
       <StakesKeeper myId={playerName} game={game} />
+      <Spectate myId={playerName} gameId={game.id} />
       <HowToPlay game={game} open={helpOpen} onClose={() => setHelpOpen(false)} />
     </GameContext.Provider>
   )
@@ -133,6 +135,7 @@ function App() {
           shed: new LiveObject({}),
           bigTwo: new LiveObject({}),
           poker: new LiveObject({}),
+          watch: new LiveObject({}), // 👀 spectator requests (engine/spectate.js)
           stakes: new LiveObject({ unit: 0, id: '', result: null }), // 💰 playing for chips (engine/stakes.js)
           bots: new LiveObject({}), // computer players: name → 'easy' | 'medium' | 'hard'
           lastDealCount: 5,
