@@ -217,7 +217,7 @@ export const GAMES = [
         'Play a card equal to or higher than the top of the pile (refill to 3 from the deck).',
         "Can't play? Pick up the whole pile and try again next turn.",
         '2 resets the pile · 3 is glass (invisible — play it on anything; the card below still counts) · 10 burns the pile (go again) · four-of-a-kind burns it too.',
-        'A 7 forces the next player to go lower than 7 — you can\'t even drop a 10 on a 7!',
+        'A 7 forces the next player to play a 7 or lower — you can\'t even drop a 10 on a 7!',
         'When your hand and deck are gone, play your face-up cards, then flip the blind ones.',
       ],
       win: 'Everyone races to empty out — the last player still holding cards loses!',

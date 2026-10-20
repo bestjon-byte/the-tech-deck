@@ -31,6 +31,7 @@
 - [x] Seats along the top are in play order on every phone (the player after you is first), and Play Again keeps everyone in the same seats
 - [x] Old Maid: the secret Queen pop-ups are silent now — no sad noise / buzz giving away who's got her
 - [x] 💰 See everyone's chips: lobby (always), top-bar pill in every game (tap for the leaderboard), on seats when playing for chips, new total on the winner screen
+- [x] Shithead: you can play a 7 on a 7 (7 means "7 or lower" — Pagat's rule)
 - [ ] Poker: playtest! Too slow? Blinds go up too fast/slow? Are the all-in pauses the right length?
 - [ ] Poker: turn timer so an away player can't stall the hand (auto-check/fold after ~45s)
 - [ ] Poker: make the 😈 Hard bot actually harder than 😎 Medium

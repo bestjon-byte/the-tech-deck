@@ -8,7 +8,7 @@ import { clearAnnouncements } from '../../engine/announce'
 // the top of the pile — or pick the whole pile up. Magic cards keep it spicy:
 //   2  — resets the pile (play on anything, anything plays next)
 //   10 — burns the pile out of the game; play again
-//   7  — the next player must go LOWER than 7
+//   7  — the next player must play a 7 or LOWER (another 7 is allowed)
 //   four of the same rank in a row also burns the pile.
 // The last player still holding cards is the Shithead!
 
@@ -37,7 +37,7 @@ export function canPlay(card, top) {
   if (!top) return true
   const tr = rankOf(top)
   if (tr === '2') return true // anything goes on a 2
-  if (tr === '7') return shedVal(card) < 7 // must go lower than a 7
+  if (tr === '7') return shedVal(card) <= 7 // must go 7 or lower (a 7 on a 7 is fine — Pagat's rule)
   return shedVal(card) >= shedVal(top)
 }
 
