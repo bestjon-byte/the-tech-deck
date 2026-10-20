@@ -30,6 +30,7 @@
 - [x] 👀 Spectator mode (Joshua's idea!) — when you're out, ask to watch someone's hand live; they say yes or no, and can stop you any time
 - [x] Seats along the top are in play order on every phone (the player after you is first), and Play Again keeps everyone in the same seats
 - [x] Old Maid: the secret Queen pop-ups are silent now — no sad noise / buzz giving away who's got her
+- [x] 💰 See everyone's chips: lobby (always), top-bar pill in every game (tap for the leaderboard), on seats when playing for chips, new total on the winner screen
 - [ ] Poker: playtest! Too slow? Blinds go up too fast/slow? Are the all-in pauses the right length?
 - [ ] Poker: turn timer so an away player can't stall the hand (auto-check/fold after ~45s)
 - [ ] Poker: make the 😈 Hard bot actually harder than 😎 Medium

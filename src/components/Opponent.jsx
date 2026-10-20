@@ -2,6 +2,7 @@ import { useOthers, useStorage } from '../liveblocks.config'
 import CardBack from './CardBack'
 import { levelEmoji } from '../engine/bots'
 import { hueOf } from '../lib/looks'
+import { chipText } from '../lib/bank'
 
 // One opponent "seat": a coloured badge (their colour comes from hueOf) with their initial, their name, a
 // little sub-label (card count, books…) and an optional visual (like a fan of
@@ -19,6 +20,8 @@ export function Opponent({ name, id = name, sub, children, active, onClick, sele
   const currentTurn = useStorage((root) => root.currentTurn)
   const seat = useStorage((root) => (root.playerOrder ?? []).indexOf(id))
   const phoneOnline = useOthers((others) => others.some((o) => o.presence.playerId === id))
+  const bank = useOthers((others) => others.find((o) => o.presence.playerId === id)?.presence.bank ?? null)
+  const showBank = useStorage((root) => (root.stakes?.unit ?? 0) > 0 && root.gameMode !== 'poker') // 💰 playing for chips
   const online = phoneOnline || !!botLevel
   const theirTurn = active ?? currentTurn === id
   return (
@@ -38,6 +41,7 @@ export function Opponent({ name, id = name, sub, children, active, onClick, sele
           {botLevel && <span className="bot-badge"> {levelEmoji(botLevel)}</span>}
         </span>
       </div>
+      {showBank && !botLevel && bank != null && <span className="seat-bank">💰 {chipText(bank)}</span>}
       {sub != null && <span className="opponent-count">{online ? sub : `📵 away · ${sub}`}</span>}
       {children && <div className="seat-extra">{children}</div>}
     </div>

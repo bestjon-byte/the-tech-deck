@@ -3146,3 +3146,54 @@ html.calm .burn-fx.calm { background: rgba(40,10,0,0.55); }
   font-size: 0.78rem;
   white-space: nowrap;
 }
+
+/* 💰 Chips everywhere: top-bar pill, seats, leaderboard */
+.chip-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,214,10,0.45);
+  background: rgba(255,214,10,0.12);
+  color: #FFD60A;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip-pill.at-stake { background: rgba(255,214,10,0.22); border-color: #FFD60A; }
+.chip-pill-stake {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #FFD60A;
+  color: #3b2a00;
+  font-size: 0.68rem;
+}
+.seat-bank { font-size: 0.66rem; font-weight: 800; color: #FFD60A; white-space: nowrap; }
+.chip-table .chip-table-sub { margin: 4px 0 10px; font-size: 0.8rem; color: rgba(255,255,255,0.7); text-align: center; }
+.chip-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.chip-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+.chip-row.me { background: #fff7d1; box-shadow: inset 0 0 0 2px #FFD60A; }
+.chip-row b { margin-left: auto; }
+.chip-rank { width: 26px; text-align: center; }
+.chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stakes-total { margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.9rem; text-align: center; }
+.stakes-total b { color: #FFD60A; }
+/* Narrow phones (320px; the rest of the top bar squeeze is further up): the
+   chip pill drops its ×stake tag — it's still lit gold, and the leaderboard says the stake */
+@media (max-width: 359px) {
+  .chip-pill { padding: 0 6px; font-size: 0.72rem; }
+  .chip-pill-stake { display: none; }
+}

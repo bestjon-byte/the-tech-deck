@@ -45,3 +45,10 @@ export function banksInRoom(myName, others) {
   for (const o of others) if (o.presence.playerId) banks[o.presence.playerId] = o.presence.bank
   return banks
 }
+
+// "3,450" — or "12.3k" once it gets big, so it fits a top bar or a seat.
+export function chipText(n) {
+  if (n == null) return '—'
+  if (n >= 10000) return `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '')}k`
+  return n.toLocaleString()
+}

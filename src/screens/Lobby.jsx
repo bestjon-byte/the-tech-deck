@@ -6,7 +6,7 @@ import HowToPlay from '../components/HowToPlay'
 import { useKeepAwake } from '../lib/keepAwake'
 import { useBots, BOT_LEVELS, BOT_NAMES, levelEmoji } from '../engine/bots'
 import { LiveObject } from '../liveblocks.config'
-import { bankToBring, banksInRoom } from '../lib/bank'
+import { bankToBring, banksInRoom, useBank } from '../lib/bank'
 import { STAKE_LEVELS, resetStakes } from '../engine/stakes'
 
 // ── Lobby ──────────────────────────────────────────────────
@@ -15,6 +15,7 @@ import { STAKE_LEVELS, resetStakes } from '../engine/stakes'
 // registry, so new games appear here automatically.
 export default function Lobby({ roomCode, playerName, isCreator, onChangeName, onLeave, onStart }) {
   const others = useOthers()
+  useBank() // my chips next to my name stay up to date
   const updateMyPresence = useUpdateMyPresence()
   useKeepAwake() // don't let the screen lock while waiting for the host
   const bots = useBots()
@@ -118,7 +119,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
             <>
               {playerName}
               <span className="you-tag">you</span>
-              {(selectedGame.bank || (selectedGame.stakes && stakeUnit > 0)) && <span className="bank-tag">💰 {bankToBring().toLocaleString()}</span>}
+              <span className="bank-tag">💰 {bankToBring().toLocaleString()}</span>
               <button
                 className="name-edit-btn"
                 onClick={() => { setNameDraft(playerName); setEditingName(true) }}
@@ -133,7 +134,7 @@ export default function Lobby({ roomCode, playerName, isCreator, onChangeName, o
           <div key={o.connectionId} className="player-item">
             <span className="player-dot on" />
             {o.presence.playerId || '...'}
-            {(selectedGame.bank || (selectedGame.stakes && stakeUnit > 0)) && o.presence.bank != null && <span className="bank-tag">💰 {o.presence.bank.toLocaleString()}</span>}
+            {o.presence.bank != null && <span className="bank-tag">💰 {o.presence.bank.toLocaleString()}</span>}
           </div>
         ))}
         {botNames.map((name) => (

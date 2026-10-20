@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useStorage, useMutation, useOthers } from '../liveblocks.config'
 import { useInCharge } from '../engine/inCharge'
-import { bankToBring, setBank, banksInRoom } from '../lib/bank'
+import { bankToBring, setBank, banksInRoom, useBank } from '../lib/bank'
 import { capToBanks } from '../engine/stakes'
 
 // 💰 The chips side of a game played for chips (see engine/stakes.js).
@@ -57,6 +57,7 @@ export function StakesKeeper({ myId, game }) {
 // The chips part of the winner screen.
 export function StakesSummary({ myId }) {
   const result = useStorage((r) => (r.stakes?.unit > 0 ? r.stakes.result : null))
+  useBank() // show my new total once it's paid in
   if (!result) return null
   const rows = Object.entries(result.chips).sort((a, b) => b[1] - a[1])
   return (
@@ -68,6 +69,7 @@ export function StakesSummary({ myId }) {
           <b>{n > 0 ? '+' : ''}{n.toLocaleString()}</b>
         </div>
       ))}
+      {result.chips?.[myId] != null && <div className="stakes-total">Your chips now: <b>💰 {bankToBring().toLocaleString()}</b></div>}
       {result.lines?.length > 0 && <div className="stakes-lines">{result.lines.map((l, i) => <div key={i}>{l}</div>)}</div>}
     </div>
   )
