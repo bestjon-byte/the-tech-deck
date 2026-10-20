@@ -28,6 +28,8 @@
 - [x] Poker chips you KEEP 💰 — saved on your phone after every hand, bring them into any room (bust = fresh 1,000)
 - [x] 💰 Play any game for chips (lobby: Off / 1 / 5 / 10 / 25 per point) — each game has its own payout rules (Big Two per card ×2/×3, Shithead pays everyone, Fan Tan passes in Sevens, mis-snaps cost in Snap…) and it all goes into your bank
 - [x] 👀 Spectator mode (Joshua's idea!) — when you're out, ask to watch someone's hand live; they say yes or no, and can stop you any time
+- [x] Seats along the top are in play order on every phone (the player after you is first), and Play Again keeps everyone in the same seats
+- [x] Old Maid: the secret Queen pop-ups are silent now — no sad noise / buzz giving away who's got her
 - [ ] Poker: playtest! Too slow? Blinds go up too fast/slow? Are the all-in pauses the right length?
 - [ ] Poker: turn timer so an away player can't stall the hand (auto-check/fold after ~45s)
 - [ ] Poker: make the 😈 Hard bot actually harder than 😎 Medium

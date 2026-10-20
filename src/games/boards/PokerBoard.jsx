@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { seatsAfter } from '../../engine/turns'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { useActionMessage } from '../../engine/announce'
 import { useInCharge } from '../../engine/inCharge'
@@ -157,7 +158,7 @@ export default function PokerBoard({ playerName, roomCode, onLeave }) {
   const iFolded = folded.includes(myId)
   const isMyTurn = currentTurn === myId && phase === 'betting'
   const pot = potOf(pk)
-  const others = playerOrder.filter((p) => p !== myId)
+  const others = seatsAfter(playerOrder, myId)
   const winnerCards = new Set((result?.winners?.[0]?.cards ?? []).map((c) => c.id))
   const onlyOneLeft = playerOrder.filter((p) => (pk.chips?.[p] ?? 0) > 0).length < 2
 

@@ -112,7 +112,7 @@ function Slam({ spec, myId }) {
   const sub = (isMe && spec.subMe) || spec.sub
   const calm = useCalm()
   useShake(shake)
-  useSound(spec.sound ?? 'slam')
+  useSound(spec.sound === undefined ? 'slam' : spec.sound) // sound: null = silent
   useEffect(() => { if (shake) buzz([40, 30, 80]) }, [shake])
   return (
     <div className={`fx fx-slam tone-${tone}${big ? ' big' : ''}`}>
@@ -170,7 +170,7 @@ function Fly({ spec, myId }) {
 
 function Bubble({ spec, myId }) {
   const [p] = useState(() => pointOf(spec.at, myId))
-  useSound(spec.sound ?? 'pop')
+  useSound(spec.sound === undefined ? 'pop' : spec.sound)
   return (
     <div className="fx">
       <div className={`fx-bubble${p.y < 200 ? ' below' : ''}`} style={{ left: p.x, top: p.y }}>{spec.text}</div>

@@ -54,6 +54,16 @@ export function advanceTurnWhile(storage, currentId, shouldSkip) {
   storage.set('currentTurn', next)
 }
 
+// Everyone else, in the order they play AFTER you — so the seats along the
+// top always read left → right as "who goes next, then next…", the same on
+// every phone (each phone just starts from its own seat). Spectators (not in
+// the order) see the plain order.
+export function seatsAfter(order, me) {
+  const i = order.indexOf(me)
+  if (i < 0) return [...order]
+  return [...order.slice(i + 1), ...order.slice(0, i)]
+}
+
 // Hook for boards: tells you the turn order, whose turn it is, whether it's
 // YOUR turn, and the list of everyone else (in turn order).
 export function useTurns(myId) {
@@ -63,6 +73,6 @@ export function useTurns(myId) {
     currentTurn,
     playerOrder,
     isMyTurn: currentTurn === myId,
-    otherPlayers: playerOrder.filter((p) => p !== myId),
+    otherPlayers: seatsAfter(playerOrder, myId), // in play order, starting with whoever goes after you
   }
 }

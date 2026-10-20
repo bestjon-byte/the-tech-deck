@@ -5,6 +5,7 @@ import { useBank, bankToBring, banksInRoom } from './lib/bank'
 import { getSavedName, saveName, saveLastRoom, makeRoomCode } from './lib/identity'
 import { getGame } from './games/registry'
 import { resetTable } from './engine/table'
+import { readPlayerOrder } from './engine/turns'
 import { GameContext } from './components/GameContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import ConnectionBanner from './components/ConnectionBanner'
@@ -36,8 +37,12 @@ function GameHost({ playerName, roomCode, isCreator, onLeave, onExitToLobby }) {
   // Re-deal the same game for everyone (used by "Play again").
   const playAgain = useMutation(({ storage }) => {
     const g = getGame(storage.get('gameMode'))
-    const ids = [playerName, ...others.map((o) => o.presence.playerId).filter(Boolean)]
-    if (g.bots) ids.push(...readBotNames(storage)) // 🤖 computer players play again too
+    const here = [playerName, ...others.map((o) => o.presence.playerId).filter(Boolean)]
+    if (g.bots) here.push(...readBotNames(storage)) // 🤖 computer players play again too
+    // Keep everyone in the same seats as last game (someone rejoining mustn't
+    // shuffle the table); anybody new sits at the end.
+    const lastOrder = readPlayerOrder(storage)
+    const ids = [...lastOrder.filter((p) => here.includes(p)), ...here.filter((p) => !lastOrder.includes(p))]
     const count = storage.get('lastDealCount') ?? 5
     resetTable(storage)
     resetStakes(storage, g.stakes ? currentUnit(storage) : 0) // same stake as last game, fresh payout

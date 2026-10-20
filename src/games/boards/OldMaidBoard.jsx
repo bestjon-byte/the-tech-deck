@@ -1,6 +1,6 @@
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { rankOf, nCards } from '../../lib/cards'
-import { useTurns, advanceTurnWhile, getNextTurn } from '../../engine/turns'
+import { useTurns, advanceTurnWhile, getNextTurn, seatsAfter } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { extractPairs } from '../rules/oldMaid'
 import TopBar from '../../components/TopBar'
@@ -47,7 +47,8 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
     handsObj.set(toId, newHand)
 
     // Everyone sees a card fly across. A pair is shown off to the whole table;
-    // a Queen is a secret — only the taker (😱) and the giver (😅) find out.
+    // a Queen is a secret — only the taker (😱) and the giver (😅) find out,
+    // and SILENTLY (no sound, no buzz) so nobody nearby can hear who's got her.
     const fx = [{ kind: 'fly', from: fromId, to: toId }]
     if (pairsRemoved > 0 && partner) {
       fx.push({
@@ -56,8 +57,8 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
       })
     }
     if (rankOf(taken) === 'Q' && pairsRemoved === 0) {
-      fx.push({ kind: 'slam', to: toId, tone: 'purple', emoji: '😱', title: 'UH OH…', sub: 'You just picked up a Queen!', sound: 'sad', burst: false, shake: true })
-      fx.push({ kind: 'slam', to: fromId, tone: 'green', emoji: '😅', title: 'PHEW!', sub: `${toId} took your Queen!`, sound: 'ding', burst: false })
+      fx.push({ kind: 'slam', to: toId, tone: 'purple', emoji: '😱', title: 'UH OH…', sub: 'You just picked up a Queen!', sound: null, burst: false })
+      fx.push({ kind: 'slam', to: fromId, tone: 'green', emoji: '😅', title: 'PHEW!', sub: `${toId} took your Queen!`, sound: null, burst: false })
     }
     announce(storage, pairsRemoved > 0
       ? `${toId} took ${taken.label} from ${fromId} — pair! 🎉`
@@ -94,7 +95,7 @@ export default function OldMaidBoard({ playerName, roomCode, onLeave }) {
 
       <div className="table-top">
         <div className="opponents">
-          {playerOrder.filter((p) => p !== myId).map((p) => {
+          {seatsAfter(playerOrder, myId).map((p) => {
             const n = (hands[p] ?? []).length
             return (
               <Opponent key={p} name={p} sub={n ? `${nCards(n)}${p === victim ? ' · 🎯' : ''}` : 'safe 😎'}>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { advanceTurnWhile } from '../../engine/turns'
+import { advanceTurnWhile, seatsAfter } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { useAutoPass } from '../../engine/autoPass'
 import { rankOf, sortByValue, nCards } from '../../lib/cards'
@@ -246,7 +246,7 @@ export default function ShitheadBoard({ playerName, roomCode, onLeave }) {
   const outWith = (p) => (shed[`outWith:${p}`] ?? []).map((c) => c.label).join(' ') // the card(s) they finished on
   const myFaceUp = faceUpOf(myId)
   const myFaceDown = faceDown[myId] ?? []
-  const others = playerOrder.filter((p) => p !== myId)
+  const others = seatsAfter(playerOrder, myId)
   const top = discard.length ? discard[discard.length - 1] : null // actual top (may be a glass 3)
   const beatTop = effectiveTop(discard) // the card you must actually beat
   const glass = glassOnTop(discard).slice(-3) // up to 3 glass 3s drawn over it

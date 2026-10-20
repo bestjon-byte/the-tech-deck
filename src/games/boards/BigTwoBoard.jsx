@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
-import { advanceTurnWhile, readPlayerOrder } from '../../engine/turns'
+import { advanceTurnWhile, readPlayerOrder, seatsAfter } from '../../engine/turns'
 import { announce, useActionMessage } from '../../engine/announce'
 import { useAutoPass } from '../../engine/autoPass'
 import TopBar from '../../components/TopBar'
@@ -190,7 +190,7 @@ export default function BigTwoBoard({ playerName, roomCode, onLeave }) {
   }
 
   const { currentTrick = [], trickType = null, leader = '', finished = [], mustStartWith3D = false } = bigTwo
-  const others = playerOrder.filter((p) => p !== myId)
+  const others = seatsAfter(playerOrder, myId)
   const isMyTurn = currentTurn === myId
   const iAmFinished = finished.includes(myId)
 

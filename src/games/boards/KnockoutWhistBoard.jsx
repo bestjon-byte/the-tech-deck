@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { seatsAfter } from '../../engine/turns'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { suitOf, sortByValue, nCards } from '../../lib/cards'
 import { announce, useActionMessage } from '../../engine/announce'
@@ -184,7 +185,7 @@ export default function KnockoutWhistBoard({ playerName, roomCode, onLeave }) {
   const isMyTurn = currentTurn === myId && phase === 'play' && !trickWinner
   const leadSuit = whist.leadSuit || ''
   const amOut = !alive.includes(myId)
-  const others = seating.filter((p) => p !== myId)
+  const others = seatsAfter(seating, myId)
 
   // I'm the dog and I can choose to hold my card — as long as someone else can
   // still play this trick (I can't sit out an otherwise-empty trick).

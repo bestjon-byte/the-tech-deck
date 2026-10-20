@@ -38,7 +38,7 @@ src/
     bank.js             ← 💰 chip bank saved on the PHONE (localStorage `tech-deck-bank`), used by poker AND playing-for-chips: bankToBring/setBank/useBank, banksInRoom(me, others). Shown on the landing screen
     motion.js           ← calm mode (✨/🧘 top-bar button): isCalm/setCalm/useCalm, puts `calm` on <html> → App.css stops all animation
   engine/
-    turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder
+    turns.js            ← useTurns, beginTurns, advanceTurn, advanceTurnWhile, readPlayerOrder, seatsAfter(order, me)
     table.js            ← useCardTable (draw/play/undo/shuffle), dealToPlayers, dealAll, resetTable
     inCharge.js         ← useInCharge(): which ONE phone does an automatic move (see Multiplayer rules)
     bots.js             ← 🤖 computer players: useBots, useBotTurn (one human phone moves for the bots), BOT_LEVELS
@@ -120,6 +120,7 @@ Liveblocks resolves clashes by **last write wins, per key**. Two phones changing
 - `{ kind: 'bubble', at, text }` — speech bubble over a seat
 - `{ kind: 'ask', … }` — Go Fish's question/answer show
 - add `to: 'Name'` to make an effect private (Old Maid's 😱 Queen)
+**Seat order:** always draw opponents with `seatsAfter(order, myId)` (or `useTurns().otherPlayers`, which uses it) — left → right is the order they play after you, the same rotation on every phone. Play Again keeps last game's seating (newcomers sit at the end). `sound: null` on a slam/bubble = silent (Old Maid's secret Queen pop-ups are silent and don't buzz so nobody can hear who has her).
 Opponent seats have `data-seat={name}` so effects can find them. Snap triggers its SNAP! locally (`FXShow`) the instant `snap.winner` is set, without waiting for the award. Sounds: `playSfx(name)` in `lib/sfx.js`.
 **Calm mode** (`lib/motion.js`): new effects must still make sense with no animation — check `useCalm()` and skip anything that only moves/flashes (Fly, Confetti, burst, shake and BurnFX's fire already do).
 
