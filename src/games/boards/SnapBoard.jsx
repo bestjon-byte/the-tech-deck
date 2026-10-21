@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStorage, useMutation } from '../../liveblocks.config'
 import { rankOf, nCards } from '../../lib/cards'
 import { playSfx } from '../../lib/sfx'
@@ -15,6 +15,9 @@ import { FXShow } from '../../components/FXLayer'
 import { rand } from '../../lib/looks'
 import { Opponent } from '../../components/Opponent'
 import { useInCharge } from '../../engine/inCharge'
+import { SNAP_WINDOW_MS, claimsFor, secs } from '../rules/snap'
+
+const REVEAL_MS = 3200 // how long the winner + reaction times stay up
 
 // A card's own little tilt on the pile — the same on every phone.
 function tiltOf(card) {
@@ -26,55 +29,77 @@ function tiltOf(card) {
 // ── Snap ───────────────────────────────────────────────────
 // Your cards stay face down. On your turn you flip your top card onto the
 // middle. The moment the top two middle cards match, everyone races to hit
-// SNAP — winner scoops the pile. Run out of cards and you're out!
+// SNAP. Every phone times its own player's reaction (from the card landing on
+// THAT screen to the tap), so a slow connection doesn't cost you. After the
+// first snap there's a 🥁 drumroll while the rest get theirs in, then the
+// fastest reaction scoops the pile. Run out of cards and you're out!
 export default function SnapBoard({ playerName, roomCode, onLeave }) {
   const myId = playerName
   const hands = useStorage((root) => root.hands)
   const centre = useStorage((root) => root.discardPile)
-  const snapWinner = useStorage((root) => root.snap?.winner ?? '')
+  const snap = useStorage((root) => root.snap)
   const actionMsg = useActionMessage(3000)
 
   const { currentTurn, playerOrder, isMyTurn, otherPlayers } = useTurns(myId)
 
-  // Brief cool-off after a mis-snap so a single panic-mash can't drain your whole
-  // stack 5 cards at a time — you eat one penalty, then the button locks for a beat.
-  const [penaltyLock, setPenaltyLock] = useState(false)
-  useEffect(() => {
-    if (!penaltyLock) return
-    const t = setTimeout(() => setPenaltyLock(false), 1200)
-    return () => clearTimeout(t)
-  }, [penaltyLock])
+  const topId = centre?.[0]?.id
+  const myCount = (hands?.[myId] ?? []).length
+  const topTwoMatch = !!centre && centre.length >= 2 && rankOf(centre[0]) === rankOf(centre[1])
+  // Snaps already in on the match showing now → the drumroll is on.
+  const claims = topTwoMatch ? claimsFor(snap, topId, playerOrder) : []
+  const drumroll = claims.length > 0
+  const iClaimed = claims.some((c) => c.name === myId)
 
-  // 👏 The SNAP! show plays the instant anyone's claim lands — on every phone.
-  const [seenWinner, setSeenWinner] = useState(snapWinner)
+  // ⏱️ When did the match land on MY screen? Your reaction time counts from here.
+  const matchSeen = useRef(null)
+  useEffect(() => {
+    if (topTwoMatch) matchSeen.current = { id: topId, at: performance.now() }
+  }, [topId, topTwoMatch])
+
+  // The buzzer locks for a beat after a mis-snap (so one panic-mash can't drain
+  // your stack 5 cards at a time). Just after a snap is decided there's a grace
+  // beat too: a late smack on a pile that's just gone isn't a mis-snap.
+  const [lock, setLock] = useState(null) // null | 'penalty' | 'grace'
+  useEffect(() => {
+    if (!lock) return
+    const t = setTimeout(() => setLock(null), lock === 'penalty' ? 1200 : 1500)
+    return () => clearTimeout(t)
+  }, [lock])
+
+  // 🥁 The drumroll starts the moment the first snap lands.
+  const drumMatch = drumroll ? topId : null
+  useEffect(() => { if (drumMatch != null) playSfx('snapdrum') }, [drumMatch])
+
+  // 👏 The reveal plays on every phone when a snap is decided.
+  const result = snap?.result ?? null
+  const [seenResult, setSeenResult] = useState(result?.match ?? null)
   const [snapShow, setSnapShow] = useState(null)
-  if (snapWinner !== seenWinner) {
-    setSeenWinner(snapWinner)
-    if (snapWinner) setSnapShow((prev) => ({ n: (prev?.n ?? 0) + 1, winner: snapWinner, count: centre?.length ?? 0 }))
+  if ((result?.match ?? null) !== seenResult) {
+    setSeenResult(result?.match ?? null)
+    if (result) {
+      setSnapShow(result)
+      setLock('grace')
+    }
   }
   useEffect(() => {
     if (!snapShow) return
-    const t = setTimeout(() => setSnapShow(null), 2500)
+    const t = setTimeout(() => setSnapShow(null), REVEAL_MS)
     return () => clearTimeout(t)
   }, [snapShow])
 
   // A little "thwip" every time a new card lands in the middle.
-  const topId = centre?.[0]?.id
   useEffect(() => { if (topId != null) playSfx('pop') }, [topId])
 
-  const myCount = (hands?.[myId] ?? []).length
-  const topTwoMatch = centre && centre.length >= 2 && rankOf(centre[0]) === rankOf(centre[1])
-  const claimPending = !!snapWinner
-
   const flipCard = useMutation(({ storage }, id) => {
-    if (storage.get('snap').get('winner')) return // a snap is being resolved
+    const centreList = storage.get('discardPile')
+    const top = centreList.length > 0 ? centreList.get(0) : null
+    if (top && claimsFor(storage.get('snap').toJSON(), top.id).length > 0) return // a snap is being decided
     if (storage.get('currentTurn') !== id) return
     const handsObj = storage.get('hands')
     const myStack = handsObj.get(id) ?? []
     if (myStack.length === 0) return
     const card = myStack[0]
     handsObj.set(id, myStack.slice(1))
-    const centreList = storage.get('discardPile')
     centreList.insert(card, 0)
 
     // Nobody has a card left to flip and there's nothing to snap? Then the game
@@ -94,23 +119,22 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     advanceTurnWhile(storage, id, (pid) => (handsObj.get(pid) ?? []).length === 0)
   }, [])
 
-  // Pressing SNAP only *claims* the pile. If several players claim at once,
-  // Liveblocks settles on one winner (last write wins) — so there's exactly one.
-  const claimSnap = useMutation(({ storage }, id) => {
+  // Pressing SNAP puts your name in for this match, with your reaction time.
+  // Each player has their own key, so snaps landing together can't clobber
+  // each other — the decision is made later from everyone's times.
+  const claimSnap = useMutation(({ storage }, id, match, ms) => {
     const centreList = storage.get('discardPile')
-    if (centreList.length < 2) return
+    if (centreList.length < 2 || centreList.get(0).id !== match) return // that match is gone
     if (rankOf(centreList.get(0)) !== rankOf(centreList.get(1))) return // not a match
-    const snap = storage.get('snap')
-    if (snap.get('winner')) return // already claimed this pile
-    snap.set('winner', id)
+    const snapObj = storage.get('snap')
+    if (snapObj.get(`claim:${id}`)?.match === match) return // already in
+    snapObj.set(`claim:${id}`, { match, ms })
   }, [])
 
   // Smacking SNAP when the top two cards DON'T match is a mis-snap: the culprit
   // loses up to 5 cards to the bottom of the middle pile (back into play for
   // everyone else to win). This is what stops people just mashing the button.
   const wrongSnap = useMutation(({ storage }, id) => {
-    const snap = storage.get('snap')
-    if (snap.get('winner')) return // a real snap is resolving — ignore stray taps
     const centreList = storage.get('discardPile')
     // Re-check it genuinely isn't a snap, so we never punish a true (if slow) call.
     if (centreList.length >= 2 && rankOf(centreList.get(0)) === rankOf(centreList.get(1))) return
@@ -131,22 +155,23 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     ])
   }, [])
 
-  // A moment later, the pile is handed to whoever the claim settled on. This
-  // reads the single agreed winner from storage, so every client makes the
-  // SAME change — the pile can never be handed out twice. (Fixes >52 cards.)
-  const awardPile = useMutation(({ storage }) => {
-    const snap = storage.get('snap')
-    const winner = snap.get('winner')
-    if (!winner) return
+  // When the drumroll's over, the fastest reaction gets the pile. Re-checks the
+  // match is still on top, so it can never be handed out twice.
+  const awardPile = useMutation(({ storage }, match) => {
     const centreList = storage.get('discardPile')
-    if (centreList.length === 0) { snap.set('winner', ''); return }
+    if (centreList.length < 2 || centreList.get(0).id !== match) return // already decided
+    const snapObj = storage.get('snap')
+    const times = claimsFor(snapObj.toJSON(), match, readPlayerOrder(storage))
+    if (times.length === 0) return
+    const winner = times[0].name
     const handsObj = storage.get('hands')
     const won = []
     while (centreList.length > 0) { won.push(centreList.get(0)); centreList.delete(0) }
     handsObj.set(winner, [...(handsObj.get(winner) ?? []), ...won])
 
-    announce(storage, `SNAP! ${winner} grabbed ${nCards(won.length)} 👏`)
-    snap.set('winner', '')
+    snapObj.set('result', { match, winner, count: won.length, times })
+    for (const key of [...snapObj.keys()]) if (key.startsWith('claim:')) snapObj.delete(key)
+    announce(storage, `SNAP! ${winner} grabbed ${nCards(won.length)} in ${secs(times[0].ms)} 👏`)
 
     const ct = storage.get('currentTurn')
     if ((handsObj.get(ct) ?? []).length === 0) {
@@ -154,16 +179,16 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
     }
   }, [])
 
-  // Once a winner is claimed, give the claims a beat to settle, then award.
-  // Only ONE phone hands the pile out (the snapper's, or the next online
-  // player's if they've dropped out) — if every phone did it, a laggy phone
-  // could hand it out again from old cards and undo someone's flip.
-  const iAwardPile = useInCharge(myId, snapWinner, playerOrder)
+  // Once the first snap is in, everyone else gets SNAP_WINDOW_MS to get theirs
+  // in, then the pile is awarded. Only ONE phone does it (whoever's turn it is,
+  // or the next online player if they've dropped out) — if every phone did it,
+  // a laggy phone could hand it out again from old cards.
+  const iAwardPile = useInCharge(myId, currentTurn, playerOrder)
   useEffect(() => {
-    if (!snapWinner || !iAwardPile) return
-    const t = setTimeout(() => awardPile(), 450)
+    if (drumMatch == null || !iAwardPile) return
+    const t = setTimeout(() => awardPile(drumMatch), SNAP_WINDOW_MS)
     return () => clearTimeout(t)
-  }, [snapWinner, iAwardPile, awardPile])
+  }, [drumMatch, iAwardPile, awardPile])
 
   if (!hands) {
     return <div className="lobby"><p className="lobby-sub">Setting up game...</p></div>
@@ -176,17 +201,24 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
   }
 
   const shown = (centre ?? []).slice(0, 3).reverse() // top card drawn last (on top)
-  const canFlip = isMyTurn && myCount > 0 && !claimPending
+  const canFlip = isMyTurn && myCount > 0 && !drumroll
+  const buzzerOff = lock === 'penalty' || iClaimed
 
   function hitSnap() {
-    if (claimPending || penaltyLock) return
+    if (buzzerOff) return
     if (topTwoMatch) {
-      claimSnap(myId)
-    } else {
+      const seen = matchSeen.current
+      const ms = seen?.id === topId ? Math.round(performance.now() - seen.at) : 9999
+      claimSnap(myId, topId, ms)
+    } else if (lock !== 'grace') {
       wrongSnap(myId)
-      setPenaltyLock(true)
+      setLock('penalty')
     }
   }
+
+  // Who's in the drumroll — in seat order, so it doesn't give the answer away.
+  const seat = (name) => { const i = playerOrder.indexOf(name); return i < 0 ? playerOrder.length : i }
+  const inTheRunning = claims.map((c) => c.name).sort((a, b) => seat(a) - seat(b))
 
   return (
     <div className="game-board">
@@ -205,7 +237,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
       </div>
 
       <div className="table-center">
-        <div className={`snap-pile${topTwoMatch && !claimPending ? ' match' : ''}`} data-spot="pile">
+        <div className={`snap-pile${topTwoMatch ? ' match' : ''}`} data-spot="pile">
           {shown.length === 0 && <div className="empty-pile discard-empty">Flip to start</div>}
           {shown.map((c, i) => (
             <div
@@ -218,7 +250,7 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
           ))}
         </div>
         <span className="pile-label">Middle{centre.length > 0 ? ` · ${centre.length}` : ''}</span>
-        {topTwoMatch && !claimPending && <div className="snap-alert">IT'S A MATCH!</div>}
+        {topTwoMatch && !drumroll && <div className="snap-alert">IT'S A MATCH!</div>}
       </div>
 
       <div className="hand snap-dock">
@@ -229,26 +261,52 @@ export default function SnapBoard({ playerName, roomCode, onLeave }) {
 
         {/* Anyone can snap — even a knocked-out player can fight back in.
             A real match claims the pile; a wrong call costs you 5 cards. */}
+        {/* onPointerDown, not onClick: fires the instant your finger lands,
+            so your reaction time isn't padded by the tap. */}
         <button
-          className={`snap-buzzer${topTwoMatch && !claimPending ? ' armed' : ''}`}
-          onClick={hitSnap}
-          disabled={claimPending || penaltyLock}
+          className={`snap-buzzer${topTwoMatch && !buzzerOff ? ' armed' : ''}`}
+          onPointerDown={hitSnap}
+          disabled={buzzerOff}
         >
-          <span>{penaltyLock ? '⏳' : 'SNAP!'}</span>
+          <span>{lock === 'penalty' ? '⏳' : iClaimed ? '✋' : 'SNAP!'}</span>
         </button>
       </div>
 
+      {drumroll && (
+        <div className="snap-drumroll" aria-live="polite">
+          <div className="snap-drum">🥁</div>
+          <div className="snap-drumroll-title">SNAP! Who was fastest…?</div>
+          <div className="snap-claimers">
+            {inTheRunning.map((p) => (
+              <span key={p} className={`snap-claimer${p === myId ? ' me' : ''}`}>✋ {p === myId ? 'You' : p}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {snapShow && (
-        <div key={snapShow.n}>
+        <div key={snapShow.match}>
           {/* the cards fly underneath the big title */}
           <FXShow myId={myId} spec={{ kind: 'fly', from: '@pile', to: snapShow.winner, count: snapShow.count, sound: null }} />
           <FXShow
             myId={myId}
             spec={{
               kind: 'slam', tone: 'snap', title: 'SNAP!', big: true, shake: true, sound: 'snap',
-              who: snapShow.winner, sub: `${snapShow.winner} got it! +${snapShow.count}`, subMe: `YOU GOT IT! +${snapShow.count} 🙌`,
+              who: snapShow.winner,
+              sub: `${snapShow.winner} got it! ⚡ ${secs(snapShow.times[0].ms)} · +${snapShow.count}`,
+              subMe: `YOU GOT IT! ⚡ ${secs(snapShow.times[0].ms)} · +${snapShow.count} 🙌`,
             }}
           />
+          {/* Everyone's reaction time, fastest first. */}
+          <ol className="snap-times">
+            {snapShow.times.map((t, i) => (
+              <li key={t.name} className={`snap-time${i === 0 ? ' first' : ''}${t.name === myId ? ' me' : ''}`}>
+                <span className="snap-time-place">{['🥇', '🥈', '🥉'][i] ?? `${i + 1}.`}</span>
+                <span className="snap-time-name">{t.name === myId ? 'You' : t.name}</span>
+                <span className="snap-time-ms">{secs(t.ms)}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
     </div>

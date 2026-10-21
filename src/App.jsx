@@ -135,7 +135,7 @@ function App() {
           books: new LiveObject({}),
           lastAction: new LiveObject({ message: '', id: 0, fx: null }), // fx = the special effect everyone plays (FXLayer)
           declaredSuit: '',
-          snap: new LiveObject({ winner: '' }),
+          snap: new LiveObject({}),
           whist: new LiveObject({}),
           shed: new LiveObject({}),
           bigTwo: new LiveObject({}),

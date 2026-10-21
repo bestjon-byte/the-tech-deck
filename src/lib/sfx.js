@@ -116,6 +116,10 @@ const SOUNDS = {
     for (let i = 0; i < 26; i++) noise(c, { start: i * 0.09, dur: 0.07, vol: 0.12 + i * 0.016, freq: 1800, filter: 'bandpass' })
     tone(c, { freq: 110, to: 55, start: 2.35, dur: 0.4, vol: 0.5 })
   },
+  // Snap's shorter roll while it works out who was fastest (the SNAP! is the crash)
+  snapdrum: (c) => {
+    for (let i = 0; i < 21; i++) noise(c, { start: i * 0.09, dur: 0.07, vol: 0.12 + i * 0.02, freq: 1800, filter: 'bandpass' })
+  },
   burn: (c) => {
     noise(c, { dur: 1.4, vol: 0.6, freq: 500, to: 120 })
     noise(c, { start: 0.1, dur: 1.0, vol: 0.2, freq: 4000, filter: 'highpass' })

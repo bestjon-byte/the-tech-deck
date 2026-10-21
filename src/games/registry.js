@@ -163,7 +163,7 @@ export const GAMES = [
       howTo: [
         'Your cards stay face down. On your turn, tap Flip to turn your top card onto the middle.',
         'Watch the middle — when the top two cards are the same number, smash SNAP!',
-        'The fastest snapper wins the whole middle pile.',
+        'Everyone who snaps gets their reaction time measured — after a 🥁 drumroll, the fastest wins the whole middle pile.',
         'No mashing! Snap when the cards DON\'T match and you lose 5 cards to the pile.',
         "Run out of cards and you're out.",
       ],

@@ -55,6 +55,7 @@
 - [x] Auto-pass when you have no legal moves (Sevens pass, Big Two pass, Crazy Eights auto-draw, Shithead auto pick-up, Go Fish empty hand) — with a "😶 can't play — passing…" countdown everyone can see
 - [x] Go Fish: everyone SEES each ask — "Joshua asks Dad: Got any 7s?" bubble, then YES! (cards fly across) or GO FISH! (fish swim past). Books get confetti 📚. Tap a seat to choose who to ask
 - [x] Snap: giant red buzzer, tap your stack to flip, the middle shows the top cards so you can SEE the match, comic-book SNAP! on every phone, MIS-SNAP! penalty show
+- [x] Snap: two snaps at once could flip the winner (Rach saw "you won", then Sam got it — one shared key, last write won). Now every snap is timed on its own phone, 🥁 drumroll while the snaps come in, fastest reaction wins + everyone's times shown
 - [x] Special effects everywhere: Crazy 8 suit spin + "LAST CARD!", Old Maid secret 😱 "Uh oh… a Queen!", Whist ⚡ TRUMPED! + 👑 trick winner + KNOCKED OUT 🥊, Shithead OOPS/PICK UP/I'M OUT, Big Two FULL HOUSE!/BIG TWO!, Sevens ROW COMPLETE
 - [x] Sounds 🔊 (made by the phone, no downloads) with a mute button in the top bar
 - [x] Opponents sit in a row of coloured "seats" — the seat GLOWS when it's their turn

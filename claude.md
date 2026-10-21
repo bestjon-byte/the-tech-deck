@@ -69,7 +69,7 @@ src/
 | 🃏 Free Play | host picks 1–13 each | No rules: draw, play, Undo, Shuffle. Uses `useCardTable` + `OpponentBacks` |
 | 🎣 Go Fish | 7 (2p) / 5 (3+p) | Books in `books` storage; game over at 13 books |
 | 🎵 Crazy Eights | 7 / 5 | 8s wild → `declaredSuit`; recycles discard when deck empties |
-| 👏 Snap | whole deck | `snap.winner` claim → pile awarded by the in-charge phone; mis-snap costs 5 cards; if nobody can flip and there's no match, the last flipper keeps the pile (wins) |
+| 👏 Snap | whole deck | Each phone times its own player's reaction (card landing on THAT screen → finger down) and writes its own `snap['claim:Name'] = { match, ms }` (match = top card id). First claim starts a 🥁 drumroll; after `SNAP_WINDOW_MS` (2s) the in-charge phone awards the pile to the lowest `ms` and writes `snap.result` (winner + everyone's times) for the reveal. (It used to be one shared `snap.winner` key — last write won, so the SLOWEST snap to reach the server took the pile.) Mis-snap costs 5 cards; if nobody can flip and there's no match, the last flipper keeps the pile (wins) |
 | 🙅 Old Maid | whole deck minus Q♣ | Pairs auto-removed; take a hidden card from next holder |
 | 🔢 Sevens | whole deck | `discardPile` is the table; pass if no move |
 | 🎩 Knockout Whist | 7,6,5…1 per round | State in `whist`; dog's life; trick winner's phone (or in-charge fallback) clears the trick after 1.6s; the card winning a trick in progress glows green (WINNING tag, via `whistTrickWinner`) |
@@ -123,7 +123,7 @@ Liveblocks resolves clashes by **last write wins, per key**. Two phones changing
 - `{ kind: 'ask', … }` — Go Fish's question/answer show
 - add `to: 'Name'` to make an effect private (Old Maid's 😱 Queen)
 **Seat order:** always draw opponents with `seatsAfter(order, myId)` (or `useTurns().otherPlayers`, which uses it) — left → right is the order they play after you, the same rotation on every phone. Play Again keeps last game's seating (newcomers sit at the end). `sound: null` on a slam/bubble = silent (Old Maid's secret Queen pop-ups are silent and don't buzz so nobody can hear who has her).
-Opponent seats have `data-seat={name}` so effects can find them. Snap triggers its SNAP! locally (`FXShow`) the instant `snap.winner` is set, without waiting for the award. Sounds: `playSfx(name)` in `lib/sfx.js`.
+Opponent seats have `data-seat={name}` so effects can find them. Snap draws its own drumroll panel + SNAP! reveal (`FXShow` + reaction-time list) from `snap` claims/`result`. Sounds: `playSfx(name)` in `lib/sfx.js`.
 **Calm mode** (`lib/motion.js`): new effects must still make sense with no animation — check `useCalm()` and skip anything that only moves/flashes (Fly, Confetti, burst, shake and BurnFX's fire already do).
 
 ## Layout notes
@@ -143,7 +143,7 @@ Room id: `windy-<CODE>`. Defined in `initialStorage` in `App.jsx`:
 - `currentTurn` (name), `playerOrder` (`LiveList` of names)
 - `lastAction` — `LiveObject { message, id, fx }`: the "what just happened" toast + its special effect (write it with `announce()`)
 - `bots` — `LiveObject`: bot name → `'easy' | 'medium' | 'hard'` (host adds/removes in the lobby; only games with `bots` in the registry use them; older rooms may lack it — guard)
-- `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ winner }`, `whist`, `shed`, `bigTwo`, `poker` (per-game `LiveObject`s; `setupPoker` replaces `poker` with a fresh one, so older rooms without it work)
+- `books` (Go Fish), `declaredSuit` (Crazy Eights), `snap` `{ 'claim:Name', result }`, `whist`, `shed`, `bigTwo`, `poker` (per-game `LiveObject`s; `setupPoker` replaces `poker` with a fresh one, so older rooms without it work)
 - `watch` — `LiveObject` of spectator requests/answers (see 👀 Spectator mode)
 - `stakes` — `LiveObject { unit, id, result, …tallies }`: playing for chips (`resetStakes` replaces it at every start / Play Again)
 - Presence: `{ playerId, bank }` — `bank` = what that phone would sit down with (kept fresh by `BankPresence` in App.jsx)
